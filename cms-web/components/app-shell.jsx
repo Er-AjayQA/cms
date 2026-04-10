@@ -49,6 +49,11 @@ const shellConfig = {
       { title: "Tenants", href: "/superadmin/tenant", icon: Building2 },
       { title: "Domains", href: "/superadmin", icon: Globe2 },
       { title: "Teams", href: "/superadmin", icon: UsersRound },
+      {
+        title: "Subscription Manager",
+        href: "/superadmin/subscription-plans",
+        icon: Globe2,
+      },
     ],
   },
   admin: {
@@ -279,7 +284,9 @@ export function AppShell({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
                     <CmsLogo compact />
-                    <p>Purpose-built CMS surfaces for admins and super admins.</p>
+                    <p>
+                      Purpose-built CMS surfaces for admins and super admins.
+                    </p>
                   </div>
                   <p>Copyright (c) 2026 Citrus CMS. All rights reserved.</p>
                 </div>

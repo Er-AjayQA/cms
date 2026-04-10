@@ -1,6 +1,6 @@
 "use client";
 
-import { useTenantSuperadmin } from "@/app/context/superadmin_contexts/tenantSuperadmin";
+import { useSubscriptionPlans } from "@/app/context/superadmin_contexts/subscriptionPlanContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Eye, PencilLine, Plus, Search } from "lucide-react";
 
-export const TenantListing = () => {
+export const SubscriptionListing = () => {
   const {
     StatusBadge,
     formik,
@@ -29,7 +29,7 @@ export const TenantListing = () => {
     setListLoading,
     listingData,
     setListingData,
-  } = useTenantSuperadmin();
+  } = useSubscriptionPlans();
 
   return (
     <section className="space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTenantSuperadmin } from "@/app/context/superadmin_contexts/tenantSuperadmin";
+import { useSubscriptionPlans } from "@/app/context/superadmin_contexts/subscriptionPlanContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,9 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
-export const TenantForm = () => {
+export const SubscriptionForm = () => {
   const {
     StatusBadge,
     formik,
@@ -27,7 +26,7 @@ export const TenantForm = () => {
     setListLoading,
     listingData,
     setListingData,
-  } = useTenantSuperadmin();
+  } = useSubscriptionPlans();
 
   return (
     <section className="space-y-6">

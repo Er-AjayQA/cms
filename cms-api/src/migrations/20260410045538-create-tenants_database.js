@@ -52,6 +52,15 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      dbType: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      provisionSource: {
+        type: Sequelize.ENUM("platform", "client"),
+        allowNull: false,
+        defaultValue: "platform",
+      },
       currentVersion: {
         type: Sequelize.INTEGER,
         allowNull: false,

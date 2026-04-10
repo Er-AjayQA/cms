@@ -4,11 +4,11 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const tables = await queryInterface.showAllTables();
-    if (tables.includes("tenants")) {
+    if (tables.includes("subscription_plans")) {
       return;
     }
 
-    await queryInterface.createTable("tenants", {
+    await queryInterface.createTable("subscription_plans", {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -21,27 +21,56 @@ module.exports = {
         autoIncrement: true,
         unique: true,
       },
-      companyName: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      slug: {
+      name: {
         type: Sequelize.STRING,
         allowNull: false,
         unique: true,
       },
-      subscription_status: {
+
+      code: {
         type: Sequelize.STRING,
         allowNull: false,
+        unique: true,
       },
-      onboarding_source: {
-        type: Sequelize.STRING,
+
+      price: {
+        type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
+        defaultValue: 0.0,
+      },
+
+      billing_cycle: {
+        type: Sequelize.ENUM("monthly", "yearly", "lifetime"),
+        allowNull: false,
+        defaultValue: "monthly",
+      },
+
+      max_pages: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      },
+
+      max_users: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      },
+
+      max_storage_gb: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      },
+
+      trial_days: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
       },
       status: {
-        type: Sequelize.ENUM("provisioning", "active", "suspended", "failed"),
-        allowNull: false,
-        defaultValue: "provisioning",
+        type: Sequelize.ENUM("active", "inactive"),
+        defaultValue: "active",
       },
       isDeleted: {
         type: Sequelize.BOOLEAN,
@@ -59,6 +88,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("tenants");
+    await queryInterface.dropTable("subscription_plans");
   },
 };

@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../core/db/control-db");
 
-const TenantDatabase = controlSequelize.define(
-  "TenantDatabase",
+const TenantSubscriptionPlan = controlSequelize.define(
+  "TenantSubscriptionPlan",
   {
     id: {
       type: DataTypes.UUID,
@@ -20,46 +20,51 @@ const TenantDatabase = controlSequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
     },
-    dbName: {
+    planId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    start_date: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+
+    end_date: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    trial_end_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    auto_renew: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+
+    currency: {
       type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    dbHost: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    dbPort: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 3306,
-    },
-    dbUser: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    dbPassword: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    dbType: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    provisionSource: {
-      type: DataTypes.ENUM("platform", "client"),
-      allowNull: false,
-      defaultValue: "platform",
-    },
-    currentVersion: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
+      allowNull: true,
+      defaultValue: "INR",
     },
     status: {
-      type: DataTypes.ENUM("pending", "ready", "failed"),
-      allowNull: false,
-      defaultValue: "pending",
+      type: DataTypes.ENUM(
+        "trial",
+        "active",
+        "past_due",
+        "cancelled",
+        "expired",
+      ),
+      defaultValue: "trial",
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,
@@ -75,13 +80,13 @@ const TenantDatabase = controlSequelize.define(
     },
   },
   {
-    modelName: "TenantDatabase",
-    tableName: "tenant_databases",
-    freezeTableName: true,
+    modelName: "TenantSubscriptionPlan",
+    tableName: "tenant_subscription_plans",
     timestamps: true,
+    freezeTableName: true,
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
 );
 
-module.exports = TenantDatabase;
+module.exports = TenantSubscriptionPlan;

@@ -4,11 +4,11 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const tables = await queryInterface.showAllTables();
-    if (tables.includes("domains")) {
+    if (tables.includes("tenant_subscription_plans")) {
       return;
     }
 
-    await queryInterface.createTable("domains", {
+    await queryInterface.createTable("tenant_subscription_plans", {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -30,22 +30,56 @@ module.exports = {
         },
         onDelete: "CASCADE",
       },
-      hostname: {
-        type: Sequelize.STRING,
+      planId: {
+        type: Sequelize.UUID,
         allowNull: false,
-        unique: true,
+        references: {
+          model: "subscription_plans",
+          key: "id",
+        },
+        onDelete: "CASCADE",
       },
-      type: {
-        type: Sequelize.STRING,
+      start_date: {
+        type: Sequelize.DATE,
+        allowNull: false,
       },
-      isPrimary: {
+
+      end_date: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+
+      trial_end_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+
+      auto_renew: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true,
       },
+
+      amount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0.0,
+      },
+
+      currency: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: "INR",
+      },
       status: {
-        type: Sequelize.ENUM("active", "inactive"),
-        defaultValue: "active",
+        type: Sequelize.ENUM(
+          "trial",
+          "active",
+          "past_due",
+          "cancelled",
+          "expired",
+        ),
+        defaultValue: "trial",
       },
       isDeleted: {
         type: Sequelize.BOOLEAN,
@@ -63,6 +97,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("domains");
+    await queryInterface.dropTable("tenant_subscription_plans");
   },
 };
