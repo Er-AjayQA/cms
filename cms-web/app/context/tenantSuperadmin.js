@@ -51,9 +51,9 @@ export const TenantSuperadminProvider = ({ children }) => {
         HANDLE FORMIK
      =================================== */
   const validationSchema = Yup.object({
-    tenant_name: Yup.string().required("Tenant name is required"),
-    owner_email: Yup.string().required("Owner email name is required"),
-    domain: Yup.string().required("Domain is required"),
+    companyName: Yup.string().required("Tenant name is required"),
+    slug: Yup.string().required("Owner email name is required"),
+    hostname: Yup.string().required("Domain is required"),
   });
 
   const initialFormikValues = {

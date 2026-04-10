@@ -201,9 +201,9 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="relative min-h-screen bg-transparent">
-        <div className="container py-4 md:py-6">
-          <header className="sticky top-4 z-20 mb-6 rounded-[28px] border border-border/70 bg-background/85 px-4 py-4 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.5)] backdrop-blur md:px-6">
+      <SidebarInset className="relative h-svh overflow-hidden bg-transparent">
+        <div className="flex h-svh flex-col px-4 py-4 md:px-6 md:py-6">
+          <header className="z-20 mb-6 rounded-[28px] border border-border/70 bg-background/85 px-4 py-4 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.5)] backdrop-blur md:px-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="w-10 h-10 border rounded-full border-border/70 bg-white/70" />
@@ -240,48 +240,52 @@ export function AppShell({
             </div>
           </header>
 
-          {showHero && (
-            <section className="mb-8 rounded-[32px] border border-white/60 bg-white/55 p-6 shadow-[0_28px_90px_-56px_rgba(15,23,42,0.55)] backdrop-blur md:p-8">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-3xl animate-fade-up">
-                  <p className="mb-3 text-sm uppercase tracking-[0.4em] text-muted-foreground">
-                    {eyebrow}
-                  </p>
-                  <h1 className="text-4xl leading-none tracking-tight font-display md:text-6xl">
-                    {title}
-                  </h1>
-                  <p className="max-w-2xl mt-4 text-base leading-7 text-muted-foreground md:text-lg">
-                    {description}
-                  </p>
-                </div>
-
-                <div className="rounded-[26px] border border-border/60 bg-background/75 p-4">
-                  <div className="flex items-center gap-3">
-                    <CmsLogo compact />
-                    <div>
-                      <p className="font-medium">Brand-safe workspace</p>
-                      <p className="text-sm text-muted-foreground">
-                        Collapsible navigation, focused header, and shared
-                        system footer.
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-none">
+            <div className="mx-auto w-full max-w-7xl">
+              {showHero && (
+                <section className="mb-8 rounded-[32px] border border-white/60 bg-white/55 p-6 shadow-[0_28px_90px_-56px_rgba(15,23,42,0.55)] backdrop-blur md:p-8">
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-3xl animate-fade-up">
+                      <p className="mb-3 text-sm uppercase tracking-[0.4em] text-muted-foreground">
+                        {eyebrow}
+                      </p>
+                      <h1 className="text-4xl leading-none tracking-tight font-display md:text-6xl">
+                        {title}
+                      </h1>
+                      <p className="max-w-2xl mt-4 text-base leading-7 text-muted-foreground md:text-lg">
+                        {description}
                       </p>
                     </div>
+
+                    <div className="rounded-[26px] border border-border/60 bg-background/75 p-4">
+                      <div className="flex items-center gap-3">
+                        <CmsLogo compact />
+                        <div>
+                          <p className="font-medium">Brand-safe workspace</p>
+                          <p className="text-sm text-muted-foreground">
+                            Collapsible navigation, focused header, and shared
+                            system footer.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </section>
+              )}
+
+              <div className="pb-8">{children}</div>
+
+              <footer className="rounded-[28px] border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <CmsLogo compact />
+                    <p>Purpose-built CMS surfaces for admins and super admins.</p>
+                  </div>
+                  <p>Copyright (c) 2026 Citrus CMS. All rights reserved.</p>
                 </div>
-              </div>
-            </section>
-          )}
-
-          <div className="pb-8">{children}</div>
-
-          <footer className="rounded-[28px] border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <CmsLogo compact />
-                <p>Purpose-built CMS surfaces for admins and super admins.</p>
-              </div>
-              <p>Copyright (c) 2026 Citrus CMS. All rights reserved.</p>
+              </footer>
             </div>
-          </footer>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

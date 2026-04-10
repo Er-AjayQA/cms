@@ -49,76 +49,40 @@ export const TenantForm = () => {
         <Card className="overflow-hidden border-border/70 bg-white/70">
           <CardHeader className="py-2">
             <CardTitle className="text-md">Basic info</CardTitle>
+            <CardDescription>Basic tenant details.</CardDescription>
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="tenant_name"
+                  name="companyName"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   placeholder="Tenant name"
-                  value={formik.values.tenant_name}
-                  error={formik.errors.tenant_name}
+                  value={formik.values.companyName}
+                  error={formik.errors.companyName}
                 />
-                {formik.touched.tenant_name && formik.errors.tenant_name && (
+                {formik.touched.companyName && formik.errors.companyName && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.tenant_name}
+                    {formik.errors.companyName}
                   </p>
                 )}
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="owner_name"
+                  name="slug"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Owner name"
-                  value={formik.values.owner_name}
+                  placeholder="Slug"
+                  value={formik.values.slug}
+                  error={formik.errors.slug}
                 />
-              </div>
-
-              <div className="col-span-12 md:col-span-6">
-                <Input
-                  name="owner_email"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Owner email"
-                  type="email"
-                  value={formik.values.owner_email}
-                  error={formik.errors.owner_email}
-                />
-                {formik.touched.owner_email && formik.errors.owner_email && (
+                {formik.touched.slug && formik.errors.slug && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.owner_email}
+                    {formik.errors.slug}
                   </p>
                 )}
-              </div>
-
-              <div className="col-span-12 md:col-span-6">
-                <Input
-                  name="domain"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Primary domain"
-                  value={formik.values.domain}
-                  error={formik.errors.domain}
-                />
-                {formik.touched.domain && formik.errors.domain && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.domain}
-                  </p>
-                )}
-              </div>
-
-              <div className="col-span-12">
-                <Textarea
-                  name="notes"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Internal notes"
-                  value={formik.values.notes}
-                />
               </div>
             </div>
           </CardContent>
@@ -128,21 +92,22 @@ export const TenantForm = () => {
         <Card className="overflow-hidden border-border/70 bg-white/70">
           <CardHeader className="py-2">
             <CardTitle className="text-md">Domain</CardTitle>
+            <CardDescription>Provide the domain details.</CardDescription>
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="tenant_name"
+                  name="hostname"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Tenant name"
-                  value={formik.values.tenant_name}
-                  error={formik.errors.tenant_name}
+                  placeholder="Domain name"
+                  value={formik.values.hostname}
+                  error={formik.errors.hostname}
                 />
-                {formik.touched.tenant_name && formik.errors.tenant_name && (
+                {formik.touched.hostname && formik.errors.hostname && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.tenant_name}
+                    {formik.errors.hostname}
                   </p>
                 )}
               </div>
@@ -163,76 +128,63 @@ export const TenantForm = () => {
         {/* Database Info */}
         <Card className="overflow-hidden border-border/70 bg-white/70">
           <CardHeader className="py-2">
-            <CardTitle className="text-md">Database</CardTitle>
+            <CardTitle className="text-md">
+              Database <span className="text-xs">(Optional)</span>
+            </CardTitle>
+            <CardDescription>
+              If don't have DB then automatically generated by system.
+            </CardDescription>
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="tenant_name"
+                  name="dbName"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Tenant name"
-                  value={formik.values.tenant_name}
-                  error={formik.errors.tenant_name}
-                />
-                {formik.touched.tenant_name && formik.errors.tenant_name && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.tenant_name}
-                  </p>
-                )}
-              </div>
-
-              <div className="col-span-12 md:col-span-6">
-                <Input
-                  name="owner_name"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Owner name"
-                  value={formik.values.owner_name}
+                  placeholder="Database name"
+                  value={formik.values.dbName}
                 />
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="owner_email"
+                  name="dbHost"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Owner email"
+                  placeholder="DB Host name"
+                  value={formik.values.dbHost}
+                />
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Input
+                  name="dbPort"
+                  onBlur={formik.handleBlur}
+                  onChange={formik.handleChange}
+                  placeholder="DB Port"
                   type="email"
-                  value={formik.values.owner_email}
-                  error={formik.errors.owner_email}
+                  value={formik.values.dbPort}
                 />
-                {formik.touched.owner_email && formik.errors.owner_email && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.owner_email}
-                  </p>
-                )}
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="domain"
+                  name="dbUser"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Primary domain"
-                  value={formik.values.domain}
-                  error={formik.errors.domain}
+                  placeholder="DB User Name"
+                  value={formik.values.dbUser}
                 />
-                {formik.touched.domain && formik.errors.domain && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.domain}
-                  </p>
-                )}
               </div>
 
-              <div className="col-span-12">
-                <Textarea
-                  name="notes"
+              <div className="col-span-6 md:col-span-6">
+                <Input
+                  name="dbPassword"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Internal notes"
-                  value={formik.values.notes}
+                  placeholder="DB Password"
+                  value={formik.values.dbPassword}
                 />
               </div>
             </div>
