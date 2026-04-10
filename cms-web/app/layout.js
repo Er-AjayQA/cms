@@ -1,5 +1,7 @@
 import "./globals.css";
 
+import { ToastProvider } from "@/components/toast-provider";
+
 export const metadata = {
   title: "CMS Web",
   description: "Frontend shell for superadmin, client admin, and client website experiences.",
@@ -8,7 +10,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ToastProvider />
+      </body>
     </html>
   );
 }
