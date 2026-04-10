@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 38 42% 95%;
+    --foreground: 218 31% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 218 31% 14%;
+    --primary: 24 95% 45%;
+    --primary-foreground: 43 100% 97%;
+    --secondary: 195 36% 90%;
+    --secondary-foreground: 218 31% 14%;
+    --muted: 35 24% 89%;
+    --muted-foreground: 218 15% 36%;
+    --accent: 190 42% 88%;
+    --accent-foreground: 218 31% 14%;
+    --border: 28 26% 80%;
+    --input: 28 26% 80%;
+    --ring: 24 95% 45%;
+    --radius: 1.4rem;
+    --font-sans: "Satoshi";
+    --font-display: "Clash Display";
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
