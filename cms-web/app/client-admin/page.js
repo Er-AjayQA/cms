@@ -9,6 +9,7 @@ export default function ClientAdminPage() {
   return (
     <AppShell
       accent="cyan"
+      role="admin"
       eyebrow="Tenant Workspace"
       title="Client admin studio"
       description="A calmer surface for editors and client admins to manage pages, menus, publishing, and campaigns."

@@ -5,7 +5,7 @@ const {
 } = require("../controllers/tenant.controller");
 const { authSuperAdmin } = require("../../../middlewares/auth-super-admin");
 
-router.get("/tenants", authSuperAdmin, listTenants);
-router.post("/tenants", authSuperAdmin, createTenant);
+router.get("/tenants", listTenants);
+router.post("/tenants", createTenant);
 
 module.exports = router;
