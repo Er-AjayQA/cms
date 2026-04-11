@@ -11,7 +11,7 @@ import { TenantForm } from "./form";
 const TenantModeRenderer = () => {
   const { mode } = useTenantSuperadmin();
 
-  if (mode === "create" || mode === "edit") {
+  if (mode === "create" || mode === "edit" || mode === "view") {
     return <TenantForm />;
   }
 

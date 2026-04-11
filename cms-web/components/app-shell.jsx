@@ -9,6 +9,7 @@ import {
   Globe2,
   LayoutDashboard,
   LifeBuoy,
+  LogOut,
   Search,
   Settings2,
   ShieldCheck,
@@ -37,6 +38,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
+import { useAuth } from "@/app/context/authContext";
 
 const shellConfig = {
   superadmin: {
@@ -47,7 +50,7 @@ const shellConfig = {
     nav: [
       { title: "Dashboard", href: "/superadmin", icon: LayoutDashboard },
       { title: "Tenants", href: "/superadmin/tenant", icon: Building2 },
-      { title: "Domains", href: "/superadmin", icon: Globe2 },
+      { title: "Domains", href: "/superadmin/domains", icon: Globe2 },
       {
         title: "Subscription Manager",
         href: "/superadmin/subscription-plans",
@@ -84,6 +87,7 @@ export function AppShell({
   role = "admin",
   showHero = true,
 }) {
+  const { handleLogout } = useAuth();
   const pathname = usePathname();
   const config = shellConfig[role] ?? shellConfig.admin;
 
@@ -188,17 +192,16 @@ export function AppShell({
         <SidebarSeparator />
 
         <SidebarFooter className="p-4">
-          <div className="rounded-[22px] border border-sidebar-border/70 bg-sidebar-accent/40 p-3">
+          <div className="rounded-[10px] p-3">
             <div className="flex items-center gap-3">
-              <CmsLogo compact />
-              <div>
-                <p className="text-sm font-medium text-sidebar-foreground">
-                  {config.label}
-                </p>
-                <p className="text-xs text-sidebar-foreground/70">
-                  Signed in as Demo User
-                </p>
-              </div>
+              <Button
+                variants={"destructive"}
+                className="w-full hover:bg-red-600"
+                onClick={handleLogout}
+              >
+                Logout
+                <LogOut />
+              </Button>
             </div>
           </div>
         </SidebarFooter>

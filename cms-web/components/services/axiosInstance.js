@@ -35,6 +35,8 @@ axiosInstance.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("cms_token");
+      localStorage.removeItem("cms_auth_role");
+      localStorage.removeItem("cms_auth_user");
     }
 
     return Promise.reject(error);

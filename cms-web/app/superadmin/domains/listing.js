@@ -1,6 +1,6 @@
 "use client";
 
-import { useTenantSuperadmin } from "@/app/context/superadmin_contexts/tenantSuperadmin";
+import { useDomains } from "@/app/context/superadmin_contexts/domainContext";
 import { TableListingNoRecords } from "@/components/TableListingNoRecords";
 import { TableListingSkelton } from "@/components/TableListingSkelton";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Eye, PencilLine, Plus, Search, Trash2 } from "lucide-react";
 
-export const TenantListing = () => {
+export const DomainListing = () => {
   const {
     StatusBadge,
     handleAdd,
@@ -27,17 +27,17 @@ export const TenantListing = () => {
     listingData,
     search,
     setSearch,
-  } = useTenantSuperadmin();
+  } = useDomains();
 
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[10px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.4)] backdrop-blur">
         <div>
           <h1 className="text-2xl leading-none tracking-tight font-display">
-            Tenant listing
+            Domains listing
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Search, review, and manage tenants from one operational list.
+            Search, review, and manage tenant domains.
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export const TenantListing = () => {
             <Search className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground" />
             <Input
               className="pl-10"
-              placeholder="Search by tenant, owner, domain"
+              placeholder="Search by hostname, type, status"
               name="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -55,7 +55,7 @@ export const TenantListing = () => {
 
           <Button size="lg" onClick={handleAdd}>
             <Plus className="size-4" />
-            Add Tenant
+            Add Domain
           </Button>
         </div>
       </div>
@@ -66,10 +66,10 @@ export const TenantListing = () => {
             <TableHeader>
               <TableRow className="bg-background/50 hover:bg-background/50">
                 <TableHead className="w-[6%] text-center">SNo.</TableHead>
+                <TableHead>Hostname</TableHead>
                 <TableHead>Tenant</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead className="text-center">Subscription</TableHead>
-                <TableHead className="text-center">Source</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Primary</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -81,35 +81,34 @@ export const TenantListing = () => {
               ) : listingData.length <= 0 ? (
                 <TableListingNoRecords span={7} />
               ) : (
-                listingData.map((tenant, idx) => (
-                  <TableRow key={tenant.id || idx} className="bg-white/20">
+                listingData.map((domain, idx) => (
+                  <TableRow key={domain.id || idx} className="bg-white/20">
                     <TableCell className="py-1 text-center">
                       {idx + 1}.
                     </TableCell>
                     <TableCell className="py-1">
                       <p className="text-sm font-bold text-muted-foreground">
-                        {tenant.companyName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        DB: {tenant?.database?.dbName || "-"}
+                        {domain.hostname}
                       </p>
                     </TableCell>
-                    <TableCell className="py-1">{tenant.slug}</TableCell>
-                    <TableCell className="py-1 text-center">
-                      {tenant.subscription_status || "-"}
+                    <TableCell className="py-1">
+                      {domain?.tenant?.companyName || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
-                      {tenant.onboarding_source || "-"}
+                      {domain.type || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
-                      <StatusBadge status={tenant.status} id={tenant.id} />
+                      {domain.isPrimary ? "Yes" : "No"}
+                    </TableCell>
+                    <TableCell className="py-1 text-center">
+                      <StatusBadge status={domain.status} id={domain.id} />
                     </TableCell>
                     <TableCell className="py-1">
                       <div className="flex justify-center gap-1">
                         <Button
                           size="icon"
                           variant="none"
-                          onClick={() => handleGetData(tenant?.id, "view")}
+                          onClick={() => handleGetData(domain?.id, "view")}
                           disabled={dataLoading}
                           className="hover:bg-blue-300"
                         >
@@ -118,7 +117,7 @@ export const TenantListing = () => {
                         <Button
                           size="icon"
                           variant="none"
-                          onClick={() => handleGetData(tenant?.id, "edit")}
+                          onClick={() => handleGetData(domain?.id, "edit")}
                           disabled={dataLoading}
                           className="hover:bg-orange-300"
                         >
@@ -127,7 +126,7 @@ export const TenantListing = () => {
                         <Button
                           size="icon"
                           variant="none"
-                          onClick={() => handleDeleteData(tenant?.id)}
+                          onClick={() => handleDeleteData(domain?.id)}
                           disabled={dataLoading}
                           className="hover:bg-red-300"
                         >

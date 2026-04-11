@@ -1,26 +1,21 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { formatAmount, getApiErrorMessage } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/utils";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
-import {
-  createSubscriptionsApi,
-  deleteSubscriptionsStatusApi,
-  getAllSubscriptionsApi,
-  getByIdSubscriptionsApi,
-  updateSubscriptionsApi,
-  updateSubscriptionsStatusApi,
-} from "@/components/services/subscription.service";
 import { Building2, ShieldCheck } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   loginAsSuperadminApi,
   loginAsTenantApi,
 } from "@/components/services/auth.service";
 
 const AuthContext = createContext();
+const AUTH_TOKEN_KEY = "cms_token";
+const AUTH_ROLE_KEY = "cms_auth_role";
+const AUTH_USER_KEY = "cms_auth_user";
 
 export const AuthProvider = ({ children }) => {
   /* ===================================
@@ -52,11 +47,24 @@ export const AuthProvider = ({ children }) => {
     "Quick handoff to current dashboards",
     "Ready to connect with real API auth later",
   ];
+  const router = useRouter();
+  const pathname = usePathname();
   const [token, setToken] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeRole, setActiveRole] = useState(
     roles.find((role) => role.id === "superadmin"),
   );
+
+  const getRoleById = (roleId) =>
+    roles.find((role) => role.id === roleId) || roles[0];
+
+  const getDashboardByRole = (roleId) =>
+    roleId === "superadmin" ? "/superadmin" : "/client-admin";
+
+  const isProtectedPath =
+    pathname?.startsWith("/superadmin") ||
+    pathname?.startsWith("/client-admin");
 
   /* ===================================
         HANDLE FORMIK
@@ -91,8 +99,25 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
+        const roleId = activeRole.id;
+        const authToken = res?.data?.data?.token;
+        const user = res?.data?.data?.admin || res?.data?.data?.user || null;
+
+        if (!authToken) {
+          toast.error("Login response does not include token");
+          return;
+        }
+
+        localStorage.setItem(AUTH_TOKEN_KEY, authToken);
+        localStorage.setItem(AUTH_ROLE_KEY, roleId);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+        setToken(authToken);
+        setIsAuthenticated(true);
+        setActiveRole(getRoleById(roleId));
+
         toast.success(res?.data?.message || successMessage);
         formik.resetForm();
+        router.replace(getDashboardByRole(roleId));
       } catch (error) {
         console.error("Error details:", error.response?.data || error);
         toast.error(getApiErrorMessage(error, "Failed to login"));
@@ -101,55 +126,88 @@ export const AuthProvider = ({ children }) => {
   });
 
   /* ===================================
-        API HANDLING
+        HANDLE LOGOUT
      =================================== */
-
-  /* ===================================
-        HANDLE FORM OPEN/EDIT/LISTING
-     =================================== */
-
-  /* ===================================
-        HELPERS
-     =================================== */
-  const StatusBadge = ({ id, status }) => {
-    const classes =
-      status?.toLowerCase() === "active"
-        ? "bg-emerald-500/15 text-emerald-700 border-emerald-600/20"
-        : status?.toLowerCase() === "provisioning"
-          ? "bg-amber-500/15 text-amber-700 border-amber-600/20"
-          : "bg-slate-500/15 text-slate-700 border-slate-600/20";
-
-    return (
-      <Badge
-        className={`border cursor-pointer ${classes}`}
-        onClick={() => handleUpdateStatus(id, status)}
-      >
-        {status}
-      </Badge>
-    );
-  };
-
-  const codeBadge = (code) => {
-    const classes = "bg-emerald-500/15 text-emerald-700 border-emerald-600/20";
-
-    return <Badge className={`border ${classes}`}>{code}</Badge>;
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_ROLE_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    setToken("");
+    setIsAuthenticated(false);
+    setActiveRole(getRoleById("superadmin"));
+    router.replace("/");
   };
 
   /* ===================================
         INITIAL RENDERS
      =================================== */
+  useEffect(() => {
+    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    const savedRole = localStorage.getItem(AUTH_ROLE_KEY);
+
+    if (savedToken && savedRole) {
+      setToken(savedToken);
+      setIsAuthenticated(true);
+      setActiveRole(getRoleById(savedRole));
+    }
+
+    setAuthLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (authLoading || !pathname) {
+      return;
+    }
+
+    if (!isAuthenticated && isProtectedPath) {
+      router.replace("/");
+      return;
+    }
+
+    if (isAuthenticated && pathname === "/") {
+      router.replace(getDashboardByRole(activeRole.id));
+      return;
+    }
+
+    if (isAuthenticated && pathname.startsWith("/superadmin")) {
+      if (activeRole.id !== "superadmin") {
+        router.replace("/client-admin");
+      }
+      return;
+    }
+
+    if (isAuthenticated && pathname.startsWith("/client-admin")) {
+      if (activeRole.id !== "admin") {
+        router.replace("/superadmin");
+      }
+    }
+  }, [activeRole.id, authLoading, isAuthenticated, isProtectedPath, pathname]);
+
+  const shouldHideProtectedPage =
+    authLoading ||
+    (!isAuthenticated && isProtectedPath) ||
+    (isAuthenticated &&
+      ((pathname?.startsWith("/superadmin") &&
+        activeRole.id !== "superadmin") ||
+        (pathname?.startsWith("/client-admin") && activeRole.id !== "admin")));
 
   const value = {
     formik,
     activeRole,
     setActiveRole,
-    codeBadge,
-    StatusBadge,
+    authLoading,
+    handleLogout,
+    isAuthenticated,
     roles,
+    token,
     trustPoints,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {shouldHideProtectedPage ? null : children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => useContext(AuthContext);
