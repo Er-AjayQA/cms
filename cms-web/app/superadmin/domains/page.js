@@ -3,7 +3,7 @@
 import {
   DomainProvider,
   useDomains,
-} from "@/app/context/superadmin_contexts/domainContext";
+} from "@/context/superadmin_contexts/domainContext";
 import { AppShell } from "@/components/app-shell";
 import { DomainForm } from "./form";
 import { DomainListing } from "./listing";

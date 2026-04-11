@@ -3,7 +3,7 @@
 import {
   TenantSuperadminProvider,
   useTenantSuperadmin,
-} from "@/app/context/superadmin_contexts/tenantSuperadmin";
+} from "@/context/superadmin_contexts/tenantSuperadmin";
 import { TenantListing } from "./listing";
 import { AppShell } from "@/components/app-shell";
 import { TenantForm } from "./form";

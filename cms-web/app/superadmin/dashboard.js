@@ -4,7 +4,7 @@ import { Activity, Database, Globe, UsersRound } from "lucide-react";
 import { DashboardStat } from "@/components/dashboard-stat";
 import { PreviewFrame } from "@/components/preview-frame";
 import { Button } from "@/components/ui/button";
-import { useSuperadminDashboard } from "../context/superadmin_contexts/dashboard";
+import { useSuperadminDashboard } from "../../context/superadmin_contexts/dashboard";
 
 export default function SuperadminDashboard() {
   const { dashboardData, setDashboardData, dataLoading, setDataLoading } =

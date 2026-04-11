@@ -1,6 +1,6 @@
 "use client";
 
-import { useTenantSuperadmin } from "@/app/context/superadmin_contexts/tenantSuperadmin";
+import { useTenantSuperadmin } from "@/context/superadmin_contexts/tenantSuperadmin";
 import { TableListingNoRecords } from "@/components/TableListingNoRecords";
 import { TableListingSkelton } from "@/components/TableListingSkelton";
 import { Button } from "@/components/ui/button";

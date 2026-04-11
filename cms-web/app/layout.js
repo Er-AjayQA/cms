@@ -1,4 +1,4 @@
-import { AuthProvider } from "./context/authContext";
+import { AuthProvider } from "../context/authContext";
 import "./globals.css";
 
 import { ToastProvider } from "@/components/toast-provider";

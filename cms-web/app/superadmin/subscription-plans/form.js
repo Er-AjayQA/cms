@@ -1,6 +1,6 @@
 "use client";
 
-import { useSubscriptionPlans } from "@/app/context/superadmin_contexts/subscriptionPlanContext";
+import { useSubscriptionPlans } from "@/context/superadmin_contexts/subscriptionPlanContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,

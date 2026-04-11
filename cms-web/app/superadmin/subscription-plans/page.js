@@ -6,7 +6,7 @@ import { SubscriptionForm } from "./form";
 import {
   SubscriptionPlansProvider,
   useSubscriptionPlans,
-} from "@/app/context/superadmin_contexts/subscriptionPlanContext";
+} from "@/context/superadmin_contexts/subscriptionPlanContext";
 
 const SubscriptionModeRenderer = () => {
   const { mode } = useSubscriptionPlans();

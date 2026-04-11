@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import SuperadminDashboard from "./dashboard";
-import { SuperadminDashboardProvider } from "../context/superadmin_contexts/dashboard";
+import { SuperadminDashboardProvider } from "../../context/superadmin_contexts/dashboard";
 
 export default function SuperadminPage() {
   return (

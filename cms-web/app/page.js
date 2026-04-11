@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAuth } from "./context/authContext";
+import { useAuth } from "../context/authContext";
 import { Input } from "@/components/ui/input";
 
 export default function HomePage({ tenantSlug = "", tenantLogin = false }) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDomains } from "@/app/context/superadmin_contexts/domainContext";
+import { useDomains } from "@/context/superadmin_contexts/domainContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,

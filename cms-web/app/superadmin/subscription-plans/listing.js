@@ -1,6 +1,6 @@
 "use client";
 
-import { useSubscriptionPlans } from "@/app/context/superadmin_contexts/subscriptionPlanContext";
+import { useSubscriptionPlans } from "@/context/superadmin_contexts/subscriptionPlanContext";
 import { TableListingNoRecords } from "@/components/TableListingNoRecords";
 import { TableListingSkelton } from "@/components/TableListingSkelton";
 import { Button } from "@/components/ui/button";

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { useAuth } from "@/app/context/authContext";
+import { useAuth } from "@/context/authContext";
 
 const shellConfig = {
   superadmin: {
@@ -144,8 +144,7 @@ export function AppShell({
                   const Icon = item.icon;
                   const isActive =
                     pathname === item.href ||
-                    (item.href !== homeHref &&
-                      pathname?.startsWith(item.href));
+                    (item.href !== homeHref && pathname?.startsWith(item.href));
 
                   return (
                     <SidebarMenuItem key={`${role}-${item.title}`}>
