@@ -10,35 +10,48 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { formatAmount } from "@/lib/utils";
 
 export const SubscriptionForm = () => {
-  const {
-    StatusBadge,
-    formik,
-    mode,
-    handleCloseForm,
-    handleAdd,
-    handleEdit,
-    handleView,
-    selectedTenant,
-    setSelectedTenant,
-    listLoading,
-    setListLoading,
-    listingData,
-    setListingData,
-  } = useSubscriptionPlans();
+  const { formik, mode, handleCloseForm, billingCycleOptions } =
+    useSubscriptionPlans();
+
+  const isDisable = mode === "view" ? true : false;
+  const handlePriceBlur = (event) => {
+    formik.handleBlur(event);
+    formik.setFieldValue("price", formatAmount(event.target.value));
+  };
+
+  const formTitle = {
+    view: "View Plan",
+    edit: "Edit Plan",
+    create: "Add Plan",
+  };
+
+  const formDescription = {
+    view: "View plan details.",
+    edit: "Update plan details and save changes.",
+    create: "Create a new subscription plan.",
+  };
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.4)] backdrop-blur">
+      <div className="flex flex-col gap-4 rounded-[10px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.4)] backdrop-blur">
         <div>
           <h1 className="text-2xl leading-none tracking-tight font-display">
-            {mode === "edit" ? "Edit Tenant" : "Add Tenant"}
+            {formTitle[mode]}
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {mode === "edit"
-              ? "Update tenant details and save changes."
-              : "Create a new tenant workspace with validated details."}
+            {formDescription[mode]}
           </p>
         </div>
       </div>
@@ -48,38 +61,46 @@ export const SubscriptionForm = () => {
         <Card className="overflow-hidden border-border/70 bg-white/70">
           <CardHeader className="py-2">
             <CardTitle className="text-md">Basic info</CardTitle>
-            <CardDescription>Basic tenant details.</CardDescription>
+            <CardDescription>Basic plan details.</CardDescription>
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="companyName"
+                  type="text"
+                  name="name"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Tenant name"
-                  value={formik.values.companyName}
-                  error={formik.errors.companyName}
+                  placeholder="Plan name"
+                  value={formik.values.name}
+                  error={formik.errors.name}
+                  disabled={isDisable}
                 />
-                {formik.touched.companyName && formik.errors.companyName && (
+                {formik.touched.name && formik.errors.name && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.companyName}
+                    {formik.errors.name}
                   </p>
                 )}
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="slug"
-                  onBlur={formik.handleBlur}
+                  type="text"
+                  name="code"
+                  onBlur={(e) => {
+                    const upperValue = e.target.value.toUpperCase();
+                    formik.setFieldValue("code", upperValue);
+                    formik.handleBlur(e);
+                  }}
                   onChange={formik.handleChange}
-                  placeholder="Slug"
-                  value={formik.values.slug}
-                  error={formik.errors.slug}
+                  placeholder="Plan code"
+                  value={formik.values.code}
+                  error={formik.errors.code}
+                  disabled={isDisable}
                 />
-                {formik.touched.slug && formik.errors.slug && (
+                {formik.touched.code && formik.errors.code && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.slug}
+                    {formik.errors.code}
                   </p>
                 )}
               </div>
@@ -87,103 +108,131 @@ export const SubscriptionForm = () => {
           </CardContent>
         </Card>
 
-        {/* Domain Info */}
+        {/* Billing & Payment Info */}
         <Card className="overflow-hidden border-border/70 bg-white/70">
           <CardHeader className="py-2">
-            <CardTitle className="text-md">Domain</CardTitle>
-            <CardDescription>Provide the domain details.</CardDescription>
-          </CardHeader>
-          <CardContent className="py-5">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6">
-                <Input
-                  name="hostname"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Domain name"
-                  value={formik.values.hostname}
-                  error={formik.errors.hostname}
-                />
-                {formik.touched.hostname && formik.errors.hostname && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.hostname}
-                  </p>
-                )}
-              </div>
-
-              <div className="col-span-12 md:col-span-6">
-                <Input
-                  name="owner_name"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Owner name"
-                  value={formik.values.owner_name}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Database Info */}
-        <Card className="overflow-hidden border-border/70 bg-white/70">
-          <CardHeader className="py-2">
-            <CardTitle className="text-md">
-              Database <span className="text-xs">(Optional)</span>
-            </CardTitle>
+            <CardTitle className="text-md">Billing & Payment</CardTitle>
             <CardDescription>
-              If don't have DB then automatically generated by system.
+              Provide the billing & payment details.
             </CardDescription>
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="dbName"
+                  type="number"
+                  name="price"
+                  onBlur={handlePriceBlur}
+                  onChange={formik.handleChange}
+                  placeholder="0.00"
+                  value={formik.values.price}
+                  error={formik.errors.price}
+                  disabled={isDisable}
+                  inputMode="decimal"
+                />
+                {formik.touched.price && formik.errors.price && (
+                  <p className="mt-1 text-xs text-red-600 ms-2">
+                    {formik.errors.price}
+                  </p>
+                )}
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Select
+                  name="billing_cycle"
+                  value={formik.values.billing_cycle}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("billing_cycle", value)
+                  }
+                  disabled={isDisable}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() => formik.setFieldTouched("billing_cycle", true)}
+                  >
+                    <SelectValue placeholder="Select a billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {billingCycleOptions.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Restrictions Info */}
+        <Card className="overflow-hidden border-border/70 bg-white/70">
+          <CardHeader className="py-2">
+            <CardTitle className="text-md">Restrictions</CardTitle>
+            <CardDescription>Provide limit and restrictions.</CardDescription>
+          </CardHeader>
+          <CardContent className="py-5">
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 md:col-span-6">
+                <Input
+                  type="number"
+                  name="max_pages"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Database name"
-                  value={formik.values.dbName}
+                  placeholder="Max pages"
+                  value={formik.values.max_pages}
+                  disabled={isDisable}
                 />
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="dbHost"
+                  type="number"
+                  name="max_users"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="DB Host name"
-                  value={formik.values.dbHost}
+                  placeholder="Max users"
+                  value={formik.values.max_users}
+                  disabled={isDisable}
                 />
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="dbPort"
+                  type="number"
+                  name="max_storage_gb"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="DB Port"
-                  type="email"
-                  value={formik.values.dbPort}
+                  placeholder="Max storage"
+                  value={formik.values.max_storage_gb}
+                  disabled={isDisable}
                 />
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Input
-                  name="dbUser"
+                  type="number"
+                  name="trial_days"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="DB User Name"
-                  value={formik.values.dbUser}
+                  placeholder="Trial days"
+                  value={formik.values.trial_days}
+                  disabled={isDisable}
                 />
               </div>
 
-              <div className="col-span-6 md:col-span-6">
-                <Input
-                  name="dbPassword"
+              <div className="col-span-12">
+                <Textarea
+                  name="description"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="DB Password"
-                  value={formik.values.dbPassword}
+                  placeholder="Description"
+                  value={formik.values.description}
+                  disabled={isDisable}
                 />
               </div>
             </div>
@@ -194,9 +243,11 @@ export const SubscriptionForm = () => {
           <Button onClick={handleCloseForm} type="button" variant="outline">
             Back to Listing
           </Button>
-          <Button type="submit">
-            {mode === "edit" ? "Update Tenant" : "Create Tenant"}
-          </Button>
+          {mode !== "view" && (
+            <Button type="submit">
+              {mode === "edit" ? "Update Plan" : "Create Plan"}
+            </Button>
+          )}
         </div>
       </form>
     </section>

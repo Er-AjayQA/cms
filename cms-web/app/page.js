@@ -3,47 +3,38 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Building2, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  LockKeyhole,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const roles = [
-  {
-    id: "admin",
-    label: "Admin",
-    title: "Tenant Admin Login",
-    description: "Pages, content, menus, and publishing control for a single tenant workspace.",
-    href: "/client-admin",
-    icon: Building2,
-  },
-  {
-    id: "superadmin",
-    label: "Superadmin",
-    title: "Platform Login",
-    description: "Tenant provisioning, platform health, domains, and top-level operations.",
-    href: "/superadmin",
-    icon: ShieldCheck,
-  },
-];
-
-const trustPoints = [
-  "Single screen access for both roles",
-  "Quick handoff to current dashboards",
-  "Ready to connect with real API auth later",
-];
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "./context/authContext";
+import { Input } from "@/components/ui/input";
 
 export default function HomePage() {
+  const {
+    formik,
+    activeRole,
+    setActiveRole,
+    codeBadge,
+    StatusBadge,
+    roles,
+    trustPoints,
+  } = useAuth();
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState("superadmin");
-
-  const activeRole = roles.find((role) => role.id === selectedRole) ?? roles[0];
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    router.push(activeRole.href);
-  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_30%),linear-gradient(180deg,_#fbf5ec_0%,_#f4ede2_40%,_#ecdfd0_100%)] text-foreground">
@@ -60,8 +51,8 @@ export default function HomePage() {
               <span className="block text-primary">Two clear roles.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Admin aur Superadmin dono ke liye ek focused entry point, so team seedha
-              apne workspace mein ja sake.
+              Admin aur Superadmin dono ke liye ek focused entry point, so team
+              seedha apne workspace mein ja sake.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -73,17 +64,25 @@ export default function HomePage() {
                   <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <CheckCircle2 className="size-5" />
                   </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{point}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {point}
+                  </p>
                 </div>
               ))}
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <Link className="inline-flex items-center gap-2 font-medium text-primary" href="/superadmin">
+              <Link
+                className="inline-flex items-center gap-2 font-medium text-primary"
+                href="/superadmin"
+              >
                 Open superadmin preview
                 <ArrowRight className="size-4" />
               </Link>
-              <Link className="inline-flex items-center gap-2 font-medium text-primary" href="/client-admin">
+              <Link
+                className="inline-flex items-center gap-2 font-medium text-primary"
+                href="/client-admin"
+              >
                 Open admin preview
                 <ArrowRight className="size-4" />
               </Link>
@@ -92,7 +91,6 @@ export default function HomePage() {
 
           <Card className="border-white/70 bg-white/70">
             <CardHeader className="pb-4">
-              <CardDescription>Select role</CardDescription>
               <CardTitle>{activeRole.title}</CardTitle>
               <p className="text-sm leading-6 text-muted-foreground">
                 {activeRole.description}
@@ -103,7 +101,7 @@ export default function HomePage() {
               <div className="mb-6 grid grid-cols-2 gap-3 rounded-[24px] bg-background/80 p-2">
                 {roles.map((role) => {
                   const Icon = role.icon;
-                  const isActive = role.id === selectedRole;
+                  const isActive = role.id === activeRole.id;
 
                   return (
                     <button
@@ -114,7 +112,10 @@ export default function HomePage() {
                           : "border-transparent bg-white/70 text-foreground hover:border-border hover:bg-white",
                       )}
                       key={role.id}
-                      onClick={() => setSelectedRole(role.id)}
+                      onClick={() => {
+                        formik.setFieldValue("selected_role", role.id);
+                        setActiveRole(role);
+                      }}
                       type="button"
                     >
                       <div className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-black/10">
@@ -124,41 +125,73 @@ export default function HomePage() {
                       <p
                         className={cn(
                           "mt-1 text-sm leading-5",
-                          isActive ? "text-primary-foreground/80" : "text-muted-foreground",
+                          isActive
+                            ? "text-primary-foreground/80"
+                            : "text-muted-foreground",
                         )}
                       >
-                        {role.id === "admin" ? "Client workspace" : "Platform access"}
+                        {role.id === "admin"
+                          ? "Client workspace"
+                          : "Platform access"}
                       </p>
                     </button>
                   );
                 })}
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-4" onSubmit={formik.handleSubmit}>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium">Email address</span>
-                  <input
-                    className="h-12 w-full rounded-2xl border border-border bg-background/80 px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    placeholder={selectedRole === "admin" ? "admin@tenant.com" : "superadmin@cms.com"}
-                    type="email"
-                  />
+                  <span className="mb-2 block text-sm font-medium">
+                    Email address
+                  </span>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      name="email"
+                      onBlur={formik.handleBlur}
+                      onChange={formik.handleChange}
+                      placeholder="Enter email..."
+                      value={formik.values.email}
+                      error={formik.errors.email}
+                      className="pl-11"
+                    />
+                  </div>
+                  {formik.touched.email && formik.errors.email && (
+                    <p className="mt-1 text-xs text-red-600 ms-2">
+                      {formik.errors.email}
+                    </p>
+                  )}
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium">Password</span>
+                  <span className="mb-2 block text-sm font-medium">
+                    Password
+                  </span>
                   <div className="relative">
                     <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      className="h-12 w-full rounded-2xl border border-border bg-background/80 pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      placeholder="Enter your password"
+                    <Input
                       type="password"
+                      name="password"
+                      onBlur={formik.handleBlur}
+                      onChange={formik.handleChange}
+                      placeholder="Enter password..."
+                      value={formik.values.password}
+                      error={formik.errors.password}
+                      className="pl-11"
                     />
                   </div>
+                  {formik.touched.password && formik.errors.password && (
+                    <p className="mt-1 text-xs text-red-600 ms-2">
+                      {formik.errors.password}
+                    </p>
+                  )}
                 </label>
 
                 <div className="flex items-center justify-between gap-4 pt-2">
                   <p className="text-sm text-muted-foreground">
-                    Demo flow abhi selected role ke dashboard par redirect karta hai.
+                    Demo flow abhi selected role ke dashboard par redirect karta
+                    hai.
                   </p>
                   <Button size="lg" type="submit">
                     Login as {activeRole.label}

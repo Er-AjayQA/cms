@@ -1,8 +1,8 @@
 "use client";
 
-import { SubscriptionListing, TenantListing } from "./listing";
+import { SubscriptionListing } from "./listing";
 import { AppShell } from "@/components/app-shell";
-import { SubscriptionForm, TenantForm } from "./form";
+import { SubscriptionForm } from "./form";
 import {
   SubscriptionPlansProvider,
   useSubscriptionPlans,
@@ -11,10 +11,9 @@ import {
 const SubscriptionModeRenderer = () => {
   const { mode } = useSubscriptionPlans();
 
-  if (mode === "create" || mode === "edit") {
+  if (mode === "create" || mode === "edit" || mode === "view") {
     return <SubscriptionForm />;
   }
-
   return <SubscriptionListing />;
 };
 
@@ -23,9 +22,9 @@ const SuperadminTenantPage = () => {
     <AppShell
       accent="amber"
       role="superadmin"
-      eyebrow="Tenant Operations"
-      title="Tenant management"
-      description="Manage tenant onboarding and workspace operations."
+      eyebrow="Subscription Management"
+      title="Subscriptions plans"
+      description="Manage plans onboarding and workspace operations."
       showHero={false}
     >
       <SubscriptionPlansProvider>
