@@ -87,9 +87,23 @@ export function AppShell({
   role = "admin",
   showHero = true,
 }) {
-  const { handleLogout } = useAuth();
+  const { handleLogout, tenantSlug } = useAuth();
   const pathname = usePathname();
   const config = shellConfig[role] ?? shellConfig.admin;
+  const tenantAdminHome = tenantSlug
+    ? `/tenant/${tenantSlug}/admin`
+    : "/client-admin";
+  const tenantSitePreview = tenantSlug ? `/site/${tenantSlug}` : "/site/acme";
+  const nav =
+    role === "admin"
+      ? [
+          { title: "Dashboard", href: tenantAdminHome, icon: LayoutDashboard },
+          { title: "Pages", href: tenantAdminHome, icon: Building2 },
+          { title: "Publishing", href: tenantAdminHome, icon: Sparkles },
+          { title: "Site Preview", href: tenantSitePreview, icon: Globe2 },
+        ]
+      : config.nav;
+  const homeHref = role === "admin" ? tenantAdminHome : config.homeHref;
 
   return (
     <SidebarProvider
@@ -114,7 +128,7 @@ export function AppShell({
         className="border-sidebar-border/70"
       >
         <SidebarHeader className="p-4">
-          <Link href={config.homeHref}>
+          <Link href={homeHref}>
             <div className="rounded-[24px] border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-sm transition hover:bg-sidebar-accent/60">
               <CmsLogo />
             </div>
@@ -123,28 +137,14 @@ export function AppShell({
 
         <SidebarContent className="px-2">
           <SidebarGroup>
-            <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="rounded-[22px] border border-sidebar-border/70 bg-sidebar-accent/45 p-3 text-sm">
-                <p className="font-medium text-sidebar-foreground">
-                  {config.workspace}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-sidebar-foreground/70">
-                  Built for fast daily operations with brand-safe controls.
-                </p>
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarGroup>
             <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {config.nav.map((item) => {
+                {nav.map((item) => {
                   const Icon = item.icon;
                   const isActive =
                     pathname === item.href ||
-                    (item.href !== config.homeHref &&
+                    (item.href !== homeHref &&
                       pathname?.startsWith(item.href));
 
                   return (

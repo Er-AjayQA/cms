@@ -10,11 +10,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const TenantForm = () => {
-  const { formik, mode, handleCloseForm } = useTenantSuperadmin();
+  const {
+    formik,
+    mode,
+    handleCloseForm,
+    roleOptions,
+    setRoleOptions,
+    subscriptionStatusOptions,
+    setSubscriptionStatusOptions,
+    sourceOptions,
+    setSourceOptions,
+    dbTypeOptions,
+    setDbTypeOptions,
+  } = useTenantSuperadmin();
 
   const isDisable = mode === "view";
+  const shouldShowDatabaseInfo =
+    mode === "view" || formik.values.dbType === "own";
   const formTitle = {
     view: "View Tenant",
     edit: "Edit Tenant",
@@ -47,14 +70,15 @@ export const TenantForm = () => {
             <CardTitle className="text-md">Basic info</CardTitle>
             <CardDescription>Basic tenant details.</CardDescription>
           </CardHeader>
-          <CardContent className="py-5">
+          <CardContent className="py-5 space-y-4">
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Tenant/Company Name</Label>
                 <Input
                   name="companyName"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Tenant name"
+                  placeholder="e.g: Vision Worlds..."
                   value={formik.values.companyName}
                   error={formik.errors.companyName}
                   disabled={isDisable}
@@ -66,21 +90,77 @@ export const TenantForm = () => {
                 )}
               </div>
 
-              <div className="col-span-12 md:col-span-6">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Role</Label>
+                <Select
+                  name="role"
+                  value={formik.values.role}
+                  onValueChange={(value) => formik.setFieldValue("role", value)}
+                  disabled={isDisable}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() => formik.setFieldTouched("role", true)}
+                  >
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {roleOptions.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Slug</Label>
                 <Input
                   name="slug"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Slug"
+                  placeholder="e.g: vision-worlds..."
                   value={formik.values.slug}
                   error={formik.errors.slug}
                   disabled={isDisable}
                 />
-                {formik.touched.slug && formik.errors.slug && (
-                  <p className="mt-1 text-xs text-red-600 ms-2">
-                    {formik.errors.slug}
-                  </p>
-                )}
+              </div>
+
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>DB Type</Label>
+                <Select
+                  name="dbType"
+                  value={formik.values.dbType}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("dbType", value)
+                  }
+                  disabled={isDisable}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() => formik.setFieldTouched("dbType", true)}
+                  >
+                    <SelectValue placeholder="Select a DB type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {dbTypeOptions.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -96,13 +176,14 @@ export const TenantForm = () => {
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Email</Label>
                 <Input
                   type="email"
                   name="adminEmail"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Admin email"
+                  placeholder="e.g: admin@gmail.com..."
                   value={formik.values.adminEmail}
                   error={formik.errors.adminEmail}
                   disabled={isDisable || mode === "edit"}
@@ -114,13 +195,14 @@ export const TenantForm = () => {
                 )}
               </div>
 
-              <div className="col-span-12 md:col-span-6">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Password</Label>
                 <Input
                   type="password"
                   name="adminPassword"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Admin password"
+                  placeholder="Enter password..."
                   value={formik.values.adminPassword}
                   error={formik.errors.adminPassword}
                   disabled={isDisable || mode === "edit"}
@@ -146,30 +228,188 @@ export const TenantForm = () => {
           </CardHeader>
           <CardContent className="py-5">
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6">
-                <Input
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Subscription Status</Label>
+                <Select
                   name="subscription_status"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Subscription status"
                   value={formik.values.subscription_status}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("subscription_status", value)
+                  }
                   disabled={isDisable}
-                />
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() =>
+                      formik.setFieldTouched("subscription_status", true)
+                    }
+                  >
+                    <SelectValue placeholder="Select a subscription status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {subscriptionStatusOptions.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="col-span-12 md:col-span-6">
-                <Input
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Onboarding Source</Label>
+                <Select
                   name="onboarding_source"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder="Onboarding source"
                   value={formik.values.onboarding_source}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("onboarding_source", value)
+                  }
                   disabled={isDisable}
-                />
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() =>
+                      formik.setFieldTouched("onboarding_source", true)
+                    }
+                  >
+                    <SelectValue placeholder="Select a onboarding source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {sourceOptions.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* DB Info */}
+        {shouldShowDatabaseInfo && (
+          <Card className="overflow-hidden border-border/70 bg-white/70">
+            <CardHeader className="py-2">
+              <CardTitle className="text-md">Database info</CardTitle>
+              <CardDescription>
+                {mode === "view"
+                  ? "View tenant database configuration."
+                  : "Provide database details."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="py-5">
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>DB Name</Label>
+                  <Input
+                    name="dbName"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="e.g: vision_cms"
+                    value={formik.values.dbName}
+                    error={formik.errors.dbName}
+                    disabled={isDisable}
+                  />
+                </div>
+
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>DB Host</Label>
+                  <Input
+                    name="dbHost"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="e.g: 192.68.01.9..."
+                    value={formik.values.dbHost}
+                    error={formik.errors.dbHost}
+                    disabled={isDisable}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>DB Port</Label>
+                  <Input
+                    name="dbPort"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="e.g: 3306"
+                    value={formik.values.dbPort}
+                    error={formik.errors.dbPort}
+                    disabled={isDisable}
+                  />
+                </div>
+
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>DB User</Label>
+                  <Input
+                    name="dbUser"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="e.g: root"
+                    value={formik.values.dbUser}
+                    error={formik.errors.dbUser}
+                    disabled={isDisable}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>DB Password</Label>
+                  <Input
+                    name="dbPassword"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="Enter db password..."
+                    value={formik.values.dbPassword}
+                    error={formik.errors.dbPassword}
+                    disabled={isDisable}
+                  />
+                </div>
+
+                <div className="col-span-12 md:col-span-6 space-y-2">
+                  <Label>Current Version</Label>
+                  <Input
+                    name="currentVersion"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder="e.g: 1, 2, 3..."
+                    value={formik.values.currentVersion}
+                    error={formik.errors.currentVersion}
+                    disabled={isDisable}
+                  />
+                </div>
+              </div>
+
+              {mode === "view" && (
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-12 md:col-span-6 space-y-2">
+                    <Label>DB Status</Label>
+                    <Input value={formik.values.dbStatus || "-"} disabled />
+                  </div>
+
+                  <div className="col-span-12 md:col-span-6 space-y-2">
+                    <Label>Provision Source</Label>
+                    <Input
+                      value={formik.values.dbProvisionSource || "-"}
+                      disabled
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-end gap-3">
           <Button onClick={handleCloseForm} type="button" variant="outline">

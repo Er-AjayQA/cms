@@ -12,12 +12,26 @@ async function provisionTenant({
   adminPassword,
   subscription_status = "trial",
   onboarding_source = "platform",
+  role = "owner",
+  dbType = "managed",
+  dbName,
+  dbHost,
+  dbPort,
+  dbUser,
+  dbPassword,
+  currentVersion,
 }) {
   const tx = await Tenant.sequelize.transaction();
 
   let tenant;
+  let tenantDbName;
+  let shouldCreateManagedDatabase = false;
 
   try {
+    if (!["managed", "own"].includes(dbType)) {
+      throw new Error("dbType must be either managed or own");
+    }
+
     const normalizedSlug =
       slug || slugify(companyName, { lower: true, strict: true });
 
@@ -32,27 +46,61 @@ async function provisionTenant({
       { transaction: tx },
     );
 
-    const dbName = `cms_tenant_${tenant.id}`;
+    if (dbType === "own") {
+      tenantDbName = dbName;
 
-    await TenantDatabase.create(
-      {
-        tenantId: tenant.id,
-        dbName,
-        dbHost: controlDb.host,
-        dbPort: controlDb.port,
-        dbUser: controlDb.user,
-        dbPassword: controlDb.password,
-        currentVersion: 1,
-        status: "pending",
-      },
-      { transaction: tx },
-    );
+      await TenantDatabase.create(
+        {
+          tenantId: tenant.id,
+          dbName: tenantDbName,
+          dbHost,
+          dbPort,
+          dbUser,
+          dbPassword,
+          dbType: "own",
+          provisionSource: "client",
+          currentVersion,
+          status: "ready",
+        },
+        { transaction: tx },
+      );
+    }
+
+    if (dbType === "managed") {
+      tenantDbName = `cms_tenant_${tenant.id}`;
+      shouldCreateManagedDatabase = true;
+
+      await TenantDatabase.create(
+        {
+          tenantId: tenant.id,
+          dbName: tenantDbName,
+          dbHost: controlDb.host,
+          dbPort: controlDb.port,
+          dbUser: controlDb.user,
+          dbPassword: controlDb.password,
+          dbType: "managed",
+          provisionSource: "platform",
+          currentVersion: 1,
+          status: "pending",
+        },
+        { transaction: tx },
+      );
+    }
 
     await tx.commit();
 
-    const adminConn = await getMysqlAdminConnection();
-    await adminConn.query(`CREATE DATABASE \`${dbName}\``);
-    await adminConn.end();
+    if (shouldCreateManagedDatabase) {
+      let adminConn;
+
+      try {
+        adminConn = await getMysqlAdminConnection();
+        await adminConn.query(
+          `CREATE DATABASE IF NOT EXISTS \`${tenantDbName}\``,
+        );
+      } finally {
+        await adminConn?.end();
+      }
+    }
 
     await initTenantSchema(tenant.id);
 
@@ -61,6 +109,7 @@ async function provisionTenant({
       adminEmail,
       adminPassword,
       companyName,
+      role,
     });
 
     await Tenant.update({ status: "active" }, { where: { id: tenant.id } });

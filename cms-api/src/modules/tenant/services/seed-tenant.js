@@ -11,6 +11,7 @@ async function seedTenant({
   adminEmail,
   adminPassword,
   companyName,
+  role,
 }) {
   const sequelize = await getTenantSequelizeByTenantId(tenantId);
   const { User, Site, Page, Menu } = getTenantModels(sequelize);
@@ -26,7 +27,7 @@ async function seedTenant({
         name: `${companyName} Owner`,
         email: adminEmail,
         password_hash: passwordHash,
-        role: "owner",
+        role: role,
         status: "active",
       },
       transaction,

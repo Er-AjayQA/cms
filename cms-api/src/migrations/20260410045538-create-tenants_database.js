@@ -53,8 +53,9 @@ module.exports = {
         allowNull: false,
       },
       dbType: {
-        type: Sequelize.STRING,
+        type: Sequelize.ENUM("managed", "own"),
         allowNull: false,
+        defaultValue: "managed",
       },
       provisionSource: {
         type: Sequelize.ENUM("platform", "client"),

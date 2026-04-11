@@ -19,14 +19,32 @@ import { Eye, PencilLine, Plus, Search, Trash2 } from "lucide-react";
 export const TenantListing = () => {
   const {
     StatusBadge,
+    formik,
+    mode,
+    setMode,
+    handleCloseForm,
     handleAdd,
     handleGetData,
-    handleDeleteData,
+    selectedRecordId,
+    setSelectedRecordId,
     listLoading,
+    setListLoading,
     dataLoading,
+    setDataLoading,
     listingData,
+    setListingData,
+    handleDeleteData,
+    handleUpdateStatus,
     search,
     setSearch,
+    roleOptions,
+    setRoleOptions,
+    subscriptionStatusOptions,
+    setSubscriptionStatusOptions,
+    sourceOptions,
+    setSourceOptions,
+    dbTypeOptions,
+    setDbTypeOptions,
   } = useTenantSuperadmin();
 
   return (
@@ -46,7 +64,7 @@ export const TenantListing = () => {
             <Search className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground" />
             <Input
               className="pl-10"
-              placeholder="Search by tenant, owner, domain"
+              placeholder="Search by tenant, slug, status"
               name="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -96,16 +114,20 @@ export const TenantListing = () => {
                     </TableCell>
                     <TableCell className="py-1">{tenant.slug}</TableCell>
                     <TableCell className="py-1 text-center">
-                      {tenant.subscription_status || "-"}
+                      {subscriptionStatusOptions?.find(
+                        (item) => item.value === tenant.subscription_status,
+                      )?.label || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
-                      {tenant.onboarding_source || "-"}
+                      {sourceOptions?.find(
+                        (item) => item.value === tenant.onboarding_source,
+                      )?.label || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
                       <StatusBadge status={tenant.status} id={tenant.id} />
                     </TableCell>
                     <TableCell className="py-1">
-                      <div className="flex justify-center gap-1">
+                      <div className="flex justify-center">
                         <Button
                           size="icon"
                           variant="none"

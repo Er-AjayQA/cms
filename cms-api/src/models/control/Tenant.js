@@ -30,8 +30,9 @@ const Tenant = controlSequelize.define(
       allowNull: false,
     },
     onboarding_source: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("website", "control_panel"),
       allowNull: false,
+      defaultValue: "control_panel",
     },
     status: {
       type: DataTypes.ENUM("provisioning", "active", "suspended", "failed"),

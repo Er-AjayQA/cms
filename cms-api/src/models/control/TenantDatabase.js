@@ -43,8 +43,9 @@ const TenantDatabase = controlSequelize.define(
       allowNull: false,
     },
     dbType: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("managed", "own"),
       allowNull: false,
+      defaultValue: "managed",
     },
     provisionSource: {
       type: DataTypes.ENUM("platform", "client"),

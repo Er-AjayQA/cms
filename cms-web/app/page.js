@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, LockKeyhole, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  User,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,8 +23,31 @@ import {
 import { useAuth } from "./context/authContext";
 import { Input } from "@/components/ui/input";
 
-export default function HomePage() {
+export default function HomePage({ tenantSlug = "", tenantLogin = false }) {
   const { formik, activeRole, setActiveRole, roles, trustPoints } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const isTenantLogin = tenantLogin || Boolean(tenantSlug);
+  const tenantAdminRole = roles.find((role) => role.id === "admin");
+  const platformRole = roles.find((role) => role.id === "superadmin");
+  const displayRole = isTenantLogin
+    ? tenantAdminRole || activeRole
+    : platformRole || activeRole;
+  const visibleRoles = isTenantLogin
+    ? roles.filter((role) => role.id === "admin")
+    : roles.filter((role) => role.id === "superadmin");
+
+  useEffect(() => {
+    if (isTenantLogin && tenantAdminRole) {
+      formik.setFieldValue("selected_role", "admin", false);
+      setActiveRole(tenantAdminRole);
+      return;
+    }
+
+    if (!isTenantLogin && platformRole) {
+      formik.setFieldValue("selected_role", "superadmin", false);
+      setActiveRole(platformRole);
+    }
+  }, [isTenantLogin, tenantSlug]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_30%),linear-gradient(180deg,_#fbf5ec_0%,_#f4ede2_40%,_#ecdfd0_100%)] text-foreground">
@@ -29,12 +60,15 @@ export default function HomePage() {
               CMS Access Portal
             </p>
             <h1 className="max-w-3xl font-display text-5xl leading-none tracking-tight md:text-7xl">
-              One login screen.
-              <span className="block text-primary">Two clear roles.</span>
+              {isTenantLogin ? "Tenant login." : "Platform login."}
+              <span className="block text-primary">
+                {isTenantLogin ? "Your workspace." : "Control center."}
+              </span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Admin aur Superadmin dono ke liye ek focused entry point, so team
-              seedha apne workspace mein ja sake.
+              {isTenantLogin
+                ? `${tenantSlug || "Tenant"} workspace ke liye secure admin access. Tenant context URL/domain se automatically resolve hoga.`
+                : "Superadmin ke liye platform control panel. Tenant admins apne slug wale login URL se access karenge."}
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -61,29 +95,32 @@ export default function HomePage() {
                 Open superadmin preview
                 <ArrowRight className="size-4" />
               </Link>
-              <Link
-                className="inline-flex items-center gap-2 font-medium text-primary"
-                href="/client-admin"
-              >
-                Open admin preview
-                <ArrowRight className="size-4" />
-              </Link>
+              {!isTenantLogin && (
+                <span className="text-muted-foreground">
+                  Tenant login URL: /tenant/your-slug/login
+                </span>
+              )}
             </div>
           </div>
 
           <Card className="border-white/70 bg-white/70">
             <CardHeader className="pb-4">
-              <CardTitle>{activeRole.title}</CardTitle>
+              <CardTitle>{displayRole.title}</CardTitle>
               <p className="text-sm leading-6 text-muted-foreground">
-                {activeRole.description}
+                {displayRole.description}
               </p>
             </CardHeader>
 
             <CardContent>
-              <div className="mb-6 grid grid-cols-2 gap-3 rounded-[24px] bg-background/80 p-2">
-                {roles.map((role) => {
+              <div
+                className={cn(
+                  "mb-6 grid gap-3 rounded-[24px] bg-background/80 p-2",
+                  isTenantLogin ? "grid-cols-1" : "grid-cols-2",
+                )}
+              >
+                {visibleRoles.map((role) => {
                   const Icon = role.icon;
-                  const isActive = role.id === activeRole.id;
+                  const isActive = role.id === displayRole.id;
 
                   return (
                     <button
@@ -153,15 +190,29 @@ export default function HomePage() {
                   <div className="relative">
                     <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       onBlur={formik.handleBlur}
                       onChange={formik.handleChange}
                       placeholder="Enter password..."
                       value={formik.values.password}
                       error={formik.errors.password}
-                      className="pl-11"
+                      className="pl-11 pr-11"
                     />
+                    <button
+                      type="button"
+                      className="absolute right-4 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center text-muted-foreground transition hover:text-foreground"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
                   </div>
                   {formik.touched.password && formik.errors.password && (
                     <p className="mt-1 text-xs text-red-600 ms-2">
@@ -172,7 +223,7 @@ export default function HomePage() {
 
                 <div className="flex items-center justify-end gap-4 pt-2">
                   <Button size="lg" type="submit">
-                    Login as {activeRole.label}
+                    Login as {displayRole.label}
                     <ArrowRight className="size-4" />
                   </Button>
                 </div>

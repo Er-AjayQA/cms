@@ -27,13 +27,29 @@ export const TenantSuperadminProvider = ({ children }) => {
   const [listingData, setListingData] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [selectedRecordId, setSelectedRecordId] = useState(null);
+  const [roleOptions, setRoleOptions] = useState([
+    { label: "Owner", value: "owner" },
+    { label: "Admin", value: "admin" },
+    { label: "Editor", value: "editor" },
+  ]);
+  const [subscriptionStatusOptions, setSubscriptionStatusOptions] = useState([
+    { label: "Trial", value: "trial" },
+    { label: "Active", value: "active" },
+    { label: "Cancelled", value: "cancelled" },
+  ]);
+  const [sourceOptions, setSourceOptions] = useState([
+    { label: "Control Panel", value: "control_panel" },
+  ]);
+  const [dbTypeOptions, setDbTypeOptions] = useState([
+    { label: "Own", value: "own" },
+    { label: "Managed", value: "managed" },
+  ]);
 
   /* ===================================
         HANDLE FORMIK
      =================================== */
   const validationSchema = Yup.object({
     companyName: Yup.string().required("Tenant name is required"),
-    slug: Yup.string().required("Slug is required"),
     adminEmail: Yup.string()
       .email("Valid email is required")
       .when([], {
@@ -50,11 +66,21 @@ export const TenantSuperadminProvider = ({ children }) => {
 
   const initialFormikValues = {
     companyName: "",
-    slug: "",
+    slug: null,
     adminEmail: "",
     adminPassword: "",
     subscription_status: "trial",
-    onboarding_source: "platform",
+    onboarding_source: "control_panel",
+    role: "owner",
+    dbType: "managed",
+    dbName: null,
+    dbHost: null,
+    dbPort: null,
+    dbUser: null,
+    dbPassword: null,
+    currentVersion: null,
+    dbStatus: "",
+    dbProvisionSource: "",
   };
 
   const formik = useFormik({
@@ -64,6 +90,7 @@ export const TenantSuperadminProvider = ({ children }) => {
     onSubmit: async (values) => {
       try {
         const payload = { ...values };
+        console.log("PAYLOAD====>", payload);
         const successMessage =
           mode === "edit"
             ? "Tenant updated successfully"
@@ -114,10 +141,20 @@ export const TenantSuperadminProvider = ({ children }) => {
       formik.setValues({
         companyName: data?.companyName ?? "",
         slug: data?.slug ?? "",
-        adminEmail: "",
+        adminEmail: data?.adminUser?.email ?? "",
         adminPassword: "",
         subscription_status: data?.subscription_status ?? "trial",
-        onboarding_source: data?.onboarding_source ?? "platform",
+        onboarding_source: data?.onboarding_source ?? "control_panel",
+        role: data?.adminUser?.role ?? "owner",
+        dbType: data?.database?.dbType ?? "managed",
+        dbName: data?.database?.dbName ?? "",
+        dbHost: data?.database?.dbHost ?? "",
+        dbPort: data?.database?.dbPort ?? "",
+        dbUser: data?.database?.dbUser ?? "",
+        dbPassword: data?.database?.dbPassword ?? "",
+        currentVersion: data?.database?.currentVersion ?? "",
+        dbStatus: data?.database?.status ?? "",
+        dbProvisionSource: data?.database?.provisionSource ?? "",
       });
 
       return true;
@@ -227,6 +264,14 @@ export const TenantSuperadminProvider = ({ children }) => {
     handleUpdateStatus,
     search,
     setSearch,
+    roleOptions,
+    setRoleOptions,
+    subscriptionStatusOptions,
+    setSubscriptionStatusOptions,
+    sourceOptions,
+    setSourceOptions,
+    dbTypeOptions,
+    setDbTypeOptions,
   };
 
   return (

@@ -1,6 +1,12 @@
 const { Op } = require("sequelize");
 const { Tenant, TenantDatabase, Domain } = require("../../../models/control");
 const { provisionTenant } = require("../../tenant/services/provision-tenant");
+const {
+  getTenantSequelizeByTenantId,
+} = require("../../../core/tenant/get-tenant-sequelize");
+const {
+  getTenantModels,
+} = require("../../../core/tenant/tenant-model-registry");
 const { ok, fail, notFound } = require("../../../utils/response");
 
 function getTenantErrorMessage(error) {
@@ -30,6 +36,14 @@ async function createTenant(req, res) {
       adminPassword,
       subscription_status = "trial",
       onboarding_source = "platform",
+      role,
+      dbType,
+      dbName,
+      dbHost,
+      dbPort,
+      dbUser,
+      dbPassword,
+      currentVersion,
     } = req.body;
 
     if (!companyName || !adminEmail || !adminPassword) {
@@ -47,6 +61,14 @@ async function createTenant(req, res) {
       adminPassword,
       subscription_status,
       onboarding_source,
+      role,
+      dbType,
+      dbName,
+      dbHost,
+      dbPort,
+      dbUser,
+      dbPassword,
+      currentVersion,
     });
 
     return ok(res, tenant, "Tenant created successfully", 201);
@@ -99,7 +121,34 @@ async function getByIdTenant(req, res) {
       return notFound(res, null, "Tenant not found", 404);
     }
 
-    return ok(res, tenant);
+    const tenantData = tenant.toJSON();
+
+    try {
+      const sequelize = await getTenantSequelizeByTenantId(id);
+      const { User } = getTenantModels(sequelize);
+      const adminUser = await User.findOne({
+        where: {
+          role: { [Op.in]: ["owner", "admin"] },
+          isDeleted: false,
+        },
+        order: [["createdAt", "ASC"]],
+      });
+
+      tenantData.adminUser = adminUser
+        ? {
+            id: adminUser.id,
+            name: adminUser.name,
+            email: adminUser.email,
+            role: adminUser.role,
+            status: adminUser.status,
+          }
+        : null;
+    } catch (error) {
+      tenantData.adminUser = null;
+      tenantData.adminUserError = error.message;
+    }
+
+    return ok(res, tenantData);
   } catch (error) {
     return fail(res, error.message);
   }

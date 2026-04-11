@@ -56,15 +56,43 @@ export const AuthProvider = ({ children }) => {
     roles.find((role) => role.id === "superadmin"),
   );
 
+  const tenantSlugFromPath =
+    pathname?.match(/^\/tenant\/([^/]+)(?:\/|$)/)?.[1] || "";
+  const isTenantLoginPath = pathname === "/login" || Boolean(tenantSlugFromPath);
+
   const getRoleById = (roleId) =>
     roles.find((role) => role.id === roleId) || roles[0];
 
-  const getDashboardByRole = (roleId) =>
-    roleId === "superadmin" ? "/superadmin" : "/client-admin";
+  const getStoredTenantSlug = () => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    try {
+      const storedUser = JSON.parse(
+        localStorage.getItem(AUTH_USER_KEY) || "{}",
+      );
+      return storedUser?.tenantSlug || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const getDashboardByRole = (roleId, tenantSlug = tenantSlugFromPath) => {
+    if (roleId === "superadmin") {
+      return "/superadmin";
+    }
+
+    const resolvedTenantSlug = tenantSlug || getStoredTenantSlug();
+    return resolvedTenantSlug
+      ? `/tenant/${resolvedTenantSlug}/admin`
+      : "/client-admin";
+  };
 
   const isProtectedPath =
     pathname?.startsWith("/superadmin") ||
-    pathname?.startsWith("/client-admin");
+    pathname?.startsWith("/client-admin") ||
+    /^\/tenant\/[^/]+\/admin/.test(pathname || "");
 
   /* ===================================
         HANDLE FORMIK
@@ -85,12 +113,27 @@ export const AuthProvider = ({ children }) => {
     enableReinitialize: true,
     onSubmit: async (values) => {
       try {
-        const payload = { ...values };
+        const roleId = isTenantLoginPath ? "admin" : activeRole.id;
+
+        if (roleId === "admin" && !isTenantLoginPath) {
+          toast.error("Please open your tenant login URL");
+          return;
+        }
+
+        const payload =
+          roleId === "admin"
+            ? {
+                ...values,
+                hostname:
+                  typeof window !== "undefined" ? window.location.hostname : "",
+                ...(tenantSlugFromPath ? { slug: tenantSlugFromPath } : {}),
+              }
+            : { ...values };
 
         const successMessage = "Login successfully";
 
         const res =
-          activeRole.id === "superadmin"
+          roleId === "superadmin"
             ? await loginAsSuperadminApi(payload)
             : await loginAsTenantApi(payload);
 
@@ -99,9 +142,9 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        const roleId = activeRole.id;
         const authToken = res?.data?.data?.token;
         const user = res?.data?.data?.admin || res?.data?.data?.user || null;
+        const tenantSlug = user?.tenantSlug || tenantSlugFromPath;
 
         if (!authToken) {
           toast.error("Login response does not include token");
@@ -117,7 +160,7 @@ export const AuthProvider = ({ children }) => {
 
         toast.success(res?.data?.message || successMessage);
         formik.resetForm();
-        router.replace(getDashboardByRole(roleId));
+        router.replace(getDashboardByRole(roleId, tenantSlug));
       } catch (error) {
         console.error("Error details:", error.response?.data || error);
         toast.error(getApiErrorMessage(error, "Failed to login"));
@@ -135,7 +178,11 @@ export const AuthProvider = ({ children }) => {
     setToken("");
     setIsAuthenticated(false);
     setActiveRole(getRoleById("superadmin"));
-    router.replace("/");
+    router.replace(
+      activeRole.id === "admin" && tenantSlugFromPath
+        ? `/tenant/${tenantSlugFromPath}/login`
+        : "/",
+    );
   };
 
   /* ===================================
@@ -160,23 +207,34 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (!isAuthenticated && isProtectedPath) {
-      router.replace("/");
+      router.replace(
+        tenantSlugFromPath ? `/tenant/${tenantSlugFromPath}/login` : "/",
+      );
       return;
     }
 
-    if (isAuthenticated && pathname === "/") {
+    if (
+      isAuthenticated &&
+      (pathname === "/" ||
+        pathname === "/login" ||
+        /^\/tenant\/[^/]+\/login/.test(pathname))
+    ) {
       router.replace(getDashboardByRole(activeRole.id));
       return;
     }
 
     if (isAuthenticated && pathname.startsWith("/superadmin")) {
       if (activeRole.id !== "superadmin") {
-        router.replace("/client-admin");
+        router.replace(getDashboardByRole("admin"));
       }
       return;
     }
 
-    if (isAuthenticated && pathname.startsWith("/client-admin")) {
+    if (
+      isAuthenticated &&
+      (pathname.startsWith("/client-admin") ||
+        /^\/tenant\/[^/]+\/admin/.test(pathname))
+    ) {
       if (activeRole.id !== "admin") {
         router.replace("/superadmin");
       }
@@ -189,7 +247,9 @@ export const AuthProvider = ({ children }) => {
     (isAuthenticated &&
       ((pathname?.startsWith("/superadmin") &&
         activeRole.id !== "superadmin") ||
-        (pathname?.startsWith("/client-admin") && activeRole.id !== "admin")));
+        ((pathname?.startsWith("/client-admin") ||
+          /^\/tenant\/[^/]+\/admin/.test(pathname || "")) &&
+          activeRole.id !== "admin")));
 
   const value = {
     formik,
@@ -199,6 +259,7 @@ export const AuthProvider = ({ children }) => {
     handleLogout,
     isAuthenticated,
     roles,
+    tenantSlug: tenantSlugFromPath,
     token,
     trustPoints,
   };

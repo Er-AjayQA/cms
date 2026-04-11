@@ -23,6 +23,7 @@ const {
   updateDomain,
   updateDomainStatus,
 } = require("../controllers/domain.controller");
+const { getDashboardDetails } = require("../controllers/dashboard.controller");
 const { authSuperAdmin } = require("../../../middlewares/auth-super-admin");
 
 // Super Admin Tenant Routes
@@ -48,5 +49,8 @@ router.post("/domains", createDomain);
 router.put("/domains/:id", updateDomain);
 router.patch("/domains/:id", updateDomainStatus);
 router.delete("/domains/:id", deleteDomain);
+
+// Superadmin Dashboard Routes
+router.get("/dashboard", getDashboardDetails);
 
 module.exports = router;

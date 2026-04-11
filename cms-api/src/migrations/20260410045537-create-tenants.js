@@ -35,8 +35,9 @@ module.exports = {
         allowNull: false,
       },
       onboarding_source: {
-        type: Sequelize.STRING,
+        type: Sequelize.ENUM("website", "control_panel"),
         allowNull: false,
+        defaultValue: "control_panel",
       },
       status: {
         type: Sequelize.ENUM("provisioning", "active", "suspended", "failed"),
