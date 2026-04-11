@@ -56,6 +56,9 @@ const SubscriptionPlan = controlSequelize.define(
       allowNull: true,
       defaultValue: 0,
     },
+    description: {
+      type: DataTypes.TEXT,
+    },
     status: {
       type: DataTypes.ENUM("active", "inactive"),
       defaultValue: "active",
