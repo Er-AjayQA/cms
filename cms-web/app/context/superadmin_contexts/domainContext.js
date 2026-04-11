@@ -2,59 +2,41 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getApiErrorMessage } from "@/lib/utils";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
-import { getApiErrorMessage } from "@/lib/utils";
 import {
-  createTenantsApi,
-  deleteTenantsApi,
-  getAllTenantsApi,
-  getByIdTenantsApi,
-  updateTenantsApi,
-  updateTenantsStatusApi,
-} from "@/components/services/tenant.service";
+  createDomainsApi,
+  deleteDomainsApi,
+  getAllDomainsApi,
+  getByIdDomainsApi,
+  updateDomainsApi,
+  updateDomainsStatusApi,
+} from "@/components/services/domain.service";
+import { getAllTenantsApi } from "@/components/services/tenant.service";
 
-const TenantSuperadminContext = createContext();
+const DomainContext = createContext();
 
-export const TenantSuperadminProvider = ({ children }) => {
-  /* ===================================
-        HANDLE STATE
-     =================================== */
+export const DomainProvider = ({ children }) => {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState("listing");
   const [listLoading, setListLoading] = useState(false);
   const [listingData, setListingData] = useState([]);
+  const [tenantOptions, setTenantOptions] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
-  /* ===================================
-        HANDLE FORMIK
-     =================================== */
   const validationSchema = Yup.object({
-    companyName: Yup.string().required("Tenant name is required"),
-    slug: Yup.string().required("Slug is required"),
-    adminEmail: Yup.string()
-      .email("Valid email is required")
-      .when([], {
-        is: () => mode === "create",
-        then: (schema) => schema.required("Admin email is required"),
-        otherwise: (schema) => schema,
-      }),
-    adminPassword: Yup.string().when([], {
-      is: () => mode === "create",
-      then: (schema) => schema.required("Admin password is required"),
-      otherwise: (schema) => schema,
-    }),
+    tenantId: Yup.string().required("Tenant is required"),
+    hostname: Yup.string().required("Hostname is required"),
   });
 
   const initialFormikValues = {
-    companyName: "",
-    slug: "",
-    adminEmail: "",
-    adminPassword: "",
-    subscription_status: "trial",
-    onboarding_source: "platform",
+    tenantId: "",
+    hostname: "",
+    type: "custom",
+    isPrimary: false,
   };
 
   const formik = useFormik({
@@ -66,15 +48,15 @@ export const TenantSuperadminProvider = ({ children }) => {
         const payload = { ...values };
         const successMessage =
           mode === "edit"
-            ? "Tenant updated successfully"
-            : "Tenant created successfully";
+            ? "Domain updated successfully"
+            : "Domain created successfully";
         const res =
           mode === "edit"
-            ? await updateTenantsApi(selectedRecordId, payload)
-            : await createTenantsApi(payload);
+            ? await updateDomainsApi(selectedRecordId, payload)
+            : await createDomainsApi(payload);
 
         if (!res?.data?.success) {
-          toast.error(res?.data?.message || "Failed to save tenant");
+          toast.error(res?.data?.message || "Failed to save domain");
           return;
         }
 
@@ -84,55 +66,57 @@ export const TenantSuperadminProvider = ({ children }) => {
         setMode("listing");
       } catch (error) {
         console.error("Error details:", error.response?.data || error);
-        toast.error(getApiErrorMessage(error, "Failed to save tenant"));
+        toast.error(getApiErrorMessage(error, "Failed to save domain"));
       }
     },
   });
 
-  /* ===================================
-        API HANDLING
-     =================================== */
   const fetchData = async () => {
     setListLoading(true);
     try {
-      const res = await getAllTenantsApi(search);
+      const res = await getAllDomainsApi(search);
       setListingData(res?.data?.data || []);
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
-      toast.error(getApiErrorMessage(error, "Failed to load tenants"));
+      toast.error(getApiErrorMessage(error, "Failed to load domains"));
     } finally {
       setListLoading(false);
+    }
+  };
+
+  const fetchTenants = async () => {
+    try {
+      const res = await getAllTenantsApi();
+      setTenantOptions(res?.data?.data || []);
+    } catch (error) {
+      console.error("Error details:", error.response?.data || error);
+      toast.error(getApiErrorMessage(error, "Failed to load tenants"));
     }
   };
 
   const fetchDataById = async (id) => {
     setDataLoading(true);
     try {
-      const res = await getByIdTenantsApi(id);
+      const res = await getByIdDomainsApi(id);
       const data = res?.data?.data;
 
       formik.setValues({
-        companyName: data?.companyName ?? "",
-        slug: data?.slug ?? "",
-        adminEmail: "",
-        adminPassword: "",
-        subscription_status: data?.subscription_status ?? "trial",
-        onboarding_source: data?.onboarding_source ?? "platform",
+        tenantId: data?.tenantId ?? "",
+        hostname: data?.hostname ?? "",
+        type: data?.type ?? "custom",
+        isPrimary: Boolean(data?.isPrimary),
       });
 
       return true;
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
-      toast.error(getApiErrorMessage(error, "Failed to load tenant"));
+      toast.error(getApiErrorMessage(error, "Failed to load domain"));
       return false;
     } finally {
       setDataLoading(false);
     }
   };
 
-  /* ===================================
-        HANDLE FORM OPEN/EDIT/LISTING
-     =================================== */
   const handleCloseForm = () => {
     setMode("listing");
     setSelectedRecordId(null);
@@ -156,39 +140,31 @@ export const TenantSuperadminProvider = ({ children }) => {
 
   const handleDeleteData = async (id) => {
     try {
-      const res = await deleteTenantsApi(id);
+      const res = await deleteDomainsApi(id);
       toast.success(res?.data?.message);
       fetchData();
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
-      toast.error(getApiErrorMessage(error, "Failed to delete tenant"));
+      toast.error(getApiErrorMessage(error, "Failed to delete domain"));
     }
   };
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      const res = await updateTenantsStatusApi(id, { status });
+      const res = await updateDomainsStatusApi(id, { status });
       toast.success(res?.data?.message);
       fetchData();
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
-      toast.error(getApiErrorMessage(error, "Failed to update tenant status"));
+      toast.error(getApiErrorMessage(error, "Failed to update domain status"));
     }
   };
 
-  /* ===================================
-        HELPERS
-     =================================== */
   const StatusBadge = ({ id, status }) => {
-    const normalizedStatus = status?.toLowerCase();
     const classes =
-      normalizedStatus === "active"
+      status?.toLowerCase() === "active"
         ? "bg-emerald-500/15 text-emerald-700 border-emerald-600/20"
-        : normalizedStatus === "provisioning"
-          ? "bg-amber-500/15 text-amber-700 border-amber-600/20"
-          : normalizedStatus === "failed" || normalizedStatus === "suspended"
-            ? "bg-red-500/15 text-red-700 border-red-600/20"
-            : "bg-slate-500/15 text-slate-700 border-slate-600/20";
+        : "bg-slate-500/15 text-slate-700 border-slate-600/20";
 
     return (
       <Badge
@@ -200,12 +176,13 @@ export const TenantSuperadminProvider = ({ children }) => {
     );
   };
 
-  /* ===================================
-        INITIAL RENDERS
-     =================================== */
   useEffect(() => {
     fetchData();
   }, [search]);
+
+  useEffect(() => {
+    fetchTenants();
+  }, []);
 
   const value = {
     StatusBadge,
@@ -215,6 +192,7 @@ export const TenantSuperadminProvider = ({ children }) => {
     handleCloseForm,
     handleAdd,
     handleGetData,
+    handleDeleteData,
     selectedRecordId,
     setSelectedRecordId,
     listLoading,
@@ -223,17 +201,16 @@ export const TenantSuperadminProvider = ({ children }) => {
     setDataLoading,
     listingData,
     setListingData,
-    handleDeleteData,
+    tenantOptions,
+    setTenantOptions,
     handleUpdateStatus,
     search,
     setSearch,
   };
 
   return (
-    <TenantSuperadminContext.Provider value={value}>
-      {children}
-    </TenantSuperadminContext.Provider>
+    <DomainContext.Provider value={value}>{children}</DomainContext.Provider>
   );
 };
 
-export const useTenantSuperadmin = () => useContext(TenantSuperadminContext);
+export const useDomains = () => useContext(DomainContext);

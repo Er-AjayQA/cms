@@ -1,16 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  LockKeyhole,
-  ShieldCheck,
-  User,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, LockKeyhole, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,16 +16,7 @@ import { useAuth } from "./context/authContext";
 import { Input } from "@/components/ui/input";
 
 export default function HomePage() {
-  const {
-    formik,
-    activeRole,
-    setActiveRole,
-    codeBadge,
-    StatusBadge,
-    roles,
-    trustPoints,
-  } = useAuth();
-  const router = useRouter();
+  const { formik, activeRole, setActiveRole, roles, trustPoints } = useAuth();
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_30%),linear-gradient(180deg,_#fbf5ec_0%,_#f4ede2_40%,_#ecdfd0_100%)] text-foreground">
@@ -188,11 +170,7 @@ export default function HomePage() {
                   )}
                 </label>
 
-                <div className="flex items-center justify-between gap-4 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    Demo flow abhi selected role ke dashboard par redirect karta
-                    hai.
-                  </p>
+                <div className="flex items-center justify-end gap-4 pt-2">
                   <Button size="lg" type="submit">
                     Login as {activeRole.label}
                     <ArrowRight className="size-4" />

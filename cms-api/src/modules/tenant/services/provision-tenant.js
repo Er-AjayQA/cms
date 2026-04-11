@@ -10,6 +10,8 @@ async function provisionTenant({
   slug,
   adminEmail,
   adminPassword,
+  subscription_status = "trial",
+  onboarding_source = "platform",
 }) {
   const tx = await Tenant.sequelize.transaction();
 
@@ -23,6 +25,8 @@ async function provisionTenant({
       {
         companyName,
         slug: normalizedSlug,
+        subscription_status,
+        onboarding_source,
         status: "provisioning",
       },
       { transaction: tx },
