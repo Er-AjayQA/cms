@@ -48,7 +48,11 @@ const shellConfig = {
       { title: "Dashboard", href: "/superadmin", icon: LayoutDashboard },
       { title: "Tenants", href: "/superadmin/tenant", icon: Building2 },
       { title: "Domains", href: "/superadmin", icon: Globe2 },
-      { title: "Teams", href: "/superadmin", icon: UsersRound },
+      {
+        title: "Subscription Manager",
+        href: "/superadmin/subscription-plans",
+        icon: Globe2,
+      },
     ],
   },
   admin: {
@@ -201,49 +205,48 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="relative h-svh overflow-hidden bg-transparent">
-        <div className="flex h-svh flex-col px-4 py-4 md:px-6 md:py-6">
-          <header className="z-20 mb-6 rounded-[28px] border border-border/70 bg-background/85 px-4 py-4 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.5)] backdrop-blur md:px-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="w-10 h-10 border rounded-full border-border/70 bg-white/70" />
-                <div className="hidden md:block">
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                    {eyebrow}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <span>{config.label}</span>
-                    <ChevronRight className="size-4" />
-                    <span className="text-foreground">{title}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="relative w-full md:w-[340px]">
-                  <Search className="absolute -translate-y-1/2 pointer-events-none left-3 top-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    className="pl-10 rounded-full h-11 border-border/70 bg-white/70"
-                    placeholder={`Search ${role === "superadmin" ? "tenants, domains, issues" : "pages, campaigns, menus"}`}
-                  />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button className="flex items-center justify-center transition border rounded-full size-11 border-border/70 bg-white/70 text-foreground hover:bg-white">
-                    <Bell className="size-4" />
-                  </button>
-                  <Badge className="rounded-full px-4 py-2 text-xs uppercase tracking-[0.28em]">
-                    {config.badge}
-                  </Badge>
+      <SidebarInset className="relative h-svh overflow-hidden bg-transparent !shadow-none !rounded-none !border-none">
+        <header className="z-20 mb-6 rounded-[10px] border border-border/70 bg-background/85 px-4 py-4 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.5)] backdrop-blur md:px-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="w-10 h-10 border rounded-full border-border/70 bg-white/70" />
+              <div className="hidden md:block">
+                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                  {eyebrow}
+                </p>
+                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                  <span>{config.label}</span>
+                  <ChevronRight className="size-4" />
+                  <span className="text-foreground">{title}</span>
                 </div>
               </div>
             </div>
-          </header>
 
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative w-full md:w-[340px]">
+                <Search className="absolute -translate-y-1/2 pointer-events-none left-3 top-1/2 size-4 text-muted-foreground" />
+                <Input
+                  className="pl-10 rounded-full h-11 border-border/70 bg-white/70"
+                  placeholder={`Search ${role === "superadmin" ? "tenants, domains, issues" : "pages, campaigns, menus"}`}
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button className="flex items-center justify-center transition border rounded-full size-11 border-border/70 bg-white/70 text-foreground hover:bg-white">
+                  <Bell className="size-4" />
+                </button>
+                <Badge className="rounded-full px-4 py-2 text-xs uppercase tracking-[0.28em]">
+                  {config.badge}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="flex h-svh flex-col px-4 md:px-6">
           <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-none">
             <div className="mx-auto w-full max-w-7xl">
               {showHero && (
-                <section className="mb-8 rounded-[32px] border border-white/60 bg-white/55 p-6 shadow-[0_28px_90px_-56px_rgba(15,23,42,0.55)] backdrop-blur md:p-8">
+                <section className="mb-8 rounded-[10px] border border-white/60 bg-white/55 p-6 shadow-[0_28px_90px_-56px_rgba(15,23,42,0.55)] backdrop-blur md:p-8">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-3xl animate-fade-up">
                       <p className="mb-3 text-sm uppercase tracking-[0.4em] text-muted-foreground">
@@ -275,11 +278,13 @@ export function AppShell({
 
               <div className="pb-8">{children}</div>
 
-              <footer className="rounded-[28px] border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
+              <footer className="rounded-[10px] border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
                     <CmsLogo compact />
-                    <p>Purpose-built CMS surfaces for admins and super admins.</p>
+                    <p>
+                      Purpose-built CMS surfaces for admins and super admins.
+                    </p>
                   </div>
                   <p>Copyright (c) 2026 Citrus CMS. All rights reserved.</p>
                 </div>

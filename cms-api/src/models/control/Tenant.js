@@ -25,6 +25,14 @@ const Tenant = controlSequelize.define(
       allowNull: false,
       unique: true,
     },
+    subscription_status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    onboarding_source: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     status: {
       type: DataTypes.ENUM("provisioning", "active", "suspended", "failed"),
       allowNull: false,

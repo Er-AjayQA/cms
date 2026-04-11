@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../core/db/control-db");
 
-const TenantDatabase = controlSequelize.define(
-  "TenantDatabase",
+const SubscriptionPlan = controlSequelize.define(
+  "SubscriptionPlan",
   {
     id: {
       type: DataTypes.UUID,
@@ -16,50 +16,52 @@ const TenantDatabase = controlSequelize.define(
       autoIncrement: true,
       unique: true,
     },
-    tenantId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-    },
-    dbName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
-    dbHost: {
+    code: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
-    dbPort: {
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    billing_cycle: {
+      type: DataTypes.ENUM("monthly", "yearly", "lifetime"),
+      allowNull: false,
+      defaultValue: "monthly",
+    },
+    max_pages: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 3306,
-    },
-    dbUser: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    dbPassword: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    dbType: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    provisionSource: {
-      type: DataTypes.ENUM("platform", "client"),
-      allowNull: false,
-      defaultValue: "platform",
-    },
-    currentVersion: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0,
     },
+    max_users: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    max_storage_gb: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    trial_days: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    description: {
+      type: DataTypes.TEXT,
+    },
     status: {
-      type: DataTypes.ENUM("pending", "ready", "failed"),
-      allowNull: false,
-      defaultValue: "pending",
+      type: DataTypes.ENUM("active", "inactive"),
+      defaultValue: "active",
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,
@@ -75,13 +77,13 @@ const TenantDatabase = controlSequelize.define(
     },
   },
   {
-    modelName: "TenantDatabase",
-    tableName: "tenant_databases",
-    freezeTableName: true,
+    modelName: "SubscriptionPlan",
+    tableName: "subscription_plans",
     timestamps: true,
+    freezeTableName: true,
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
 );
 
-module.exports = TenantDatabase;
+module.exports = SubscriptionPlan;

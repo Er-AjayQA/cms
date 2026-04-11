@@ -21,9 +21,12 @@ const Domain = controlSequelize.define(
       allowNull: false,
     },
     hostname: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+    },
+    type: {
+      type: DataTypes.STRING,
     },
     isPrimary: {
       type: DataTypes.BOOLEAN,
