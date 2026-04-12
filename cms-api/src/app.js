@@ -8,9 +8,7 @@ const app = express();
 
 app.use(cors());
 app.use((req, res, next) => {
-  console.log(
-    `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`,
-  );
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 app.use(express.json());
@@ -20,8 +18,8 @@ app.get("/health", (req, res) => {
   res.json({ success: true, message: "API is healthy" });
 });
 
-app.use("/api/super-admin/auth", superAdminAuthRoutes);
-app.use("/api/super-admin", superAdminRoutes);
+app.use("/api/v1/super-admin/auth", superAdminAuthRoutes);
+app.use("/api/v1/super-admin", superAdminRoutes);
 app.use(errorHandler);
 
 module.exports = app;

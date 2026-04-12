@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../../core/superadmin/control-db");
 
-const Domain = controlSequelize.define(
-  "Domain",
+const TenantAdminSeed = controlSequelize.define(
+  "TenantAdminSeed",
   {
     id: {
       type: DataTypes.UUID,
@@ -20,48 +20,31 @@ const Domain = controlSequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
     },
-    hostname: {
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
-    type: {
+    passwordHash: {
       type: DataTypes.STRING,
-    },
-    isPrimary: {
-      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: true,
+    },
+    role: {
+      type: DataTypes.ENUM("owner", "admin"),
+      allowNull: false,
+      defaultValue: "owner",
     },
     status: {
-      type: DataTypes.ENUM(
-        "pending",
-        "pending_dns",
-        "verified",
-        "failed",
-        "disabled",
-      ),
-      allowNull: false,
-      defaultValue: "pending_dns",
-    },
-    verificationToken: {
-      type: DataTypes.STRING,
-    },
-    sslStatus: {
-      type: DataTypes.ENUM("pending", "active", "failed", "disabled"),
+      type: DataTypes.ENUM("pending", "seeded", "failed"),
       allowNull: false,
       defaultValue: "pending",
     },
     failureReason: {
       type: DataTypes.TEXT,
     },
-    verifiedAt: {
+    seededAt: {
       type: DataTypes.DATE,
     },
     failedAt: {
-      type: DataTypes.DATE,
-    },
-    disabledAt: {
       type: DataTypes.DATE,
     },
     isDeleted: {
@@ -78,15 +61,13 @@ const Domain = controlSequelize.define(
     },
   },
   {
-    modelName: "Domain",
-    tableName: "domains",
-    timestamps: true,
+    modelName: "TenantAdminSeed",
+    tableName: "tenant_admin_seeds",
     freezeTableName: true,
+    timestamps: true,
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
 );
 
-module.exports = Domain;
-
-
+module.exports = TenantAdminSeed;

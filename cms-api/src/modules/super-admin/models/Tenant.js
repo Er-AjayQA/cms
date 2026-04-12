@@ -25,19 +25,40 @@ const Tenant = controlSequelize.define(
       allowNull: false,
       unique: true,
     },
-    subscription_status: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     onboarding_source: {
       type: DataTypes.ENUM("website", "control_panel"),
       allowNull: false,
       defaultValue: "control_panel",
     },
     status: {
-      type: DataTypes.ENUM("provisioning", "active", "suspended", "failed"),
+      type: DataTypes.ENUM(
+        "pending",
+        "provisioning",
+        "active",
+        "failed",
+        "suspended",
+        "archived",
+      ),
       allowNull: false,
-      defaultValue: "provisioning",
+      defaultValue: "pending",
+    },
+    provisioningStep: {
+      type: DataTypes.STRING,
+    },
+    failureReason: {
+      type: DataTypes.TEXT,
+    },
+    failedAt: {
+      type: DataTypes.DATE,
+    },
+    activatedAt: {
+      type: DataTypes.DATE,
+    },
+    suspendedAt: {
+      type: DataTypes.DATE,
+    },
+    archivedAt: {
+      type: DataTypes.DATE,
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,

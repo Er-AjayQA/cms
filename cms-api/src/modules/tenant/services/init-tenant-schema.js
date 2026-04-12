@@ -11,9 +11,16 @@ async function initTenantSchema(tenantId) {
   const models = getTenantModels(sequelize);
 
   await sequelize.authenticate();
-  await runTenantMigrations(sequelize);
+  const executed = await runTenantMigrations(sequelize);
+  const [rows] = await sequelize.query(
+    "SELECT COUNT(*) AS migrationCount FROM `TenantMigrationsMeta`",
+  );
 
-  return models;
+  return {
+    models,
+    executed,
+    currentVersion: Number(rows?.[0]?.migrationCount || 0),
+  };
 }
 
 module.exports = { initTenantSchema };

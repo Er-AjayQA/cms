@@ -10,6 +10,7 @@ async function seedTenant({
   tenantId,
   adminEmail,
   adminPassword,
+  adminPasswordHash,
   companyName,
   role,
 }) {
@@ -19,12 +20,13 @@ async function seedTenant({
   const transaction = await sequelize.transaction();
 
   try {
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
+    const passwordHash =
+      adminPasswordHash || (await bcrypt.hash(adminPassword, 10));
 
     const [owner] = await User.findOrCreate({
       where: { email: adminEmail },
       defaults: {
-        name: `${companyName} Owner`,
+        name: companyName,
         email: adminEmail,
         password_hash: passwordHash,
         role: role,

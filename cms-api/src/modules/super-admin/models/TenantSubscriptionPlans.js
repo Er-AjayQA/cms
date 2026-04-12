@@ -57,14 +57,14 @@ const TenantSubscriptionPlan = controlSequelize.define(
       defaultValue: "INR",
     },
     status: {
-      type: DataTypes.ENUM(
-        "trial",
-        "active",
-        "past_due",
-        "cancelled",
-        "expired",
-      ),
+      type: DataTypes.ENUM("trial", "active", "expired", "cancelled"),
+      allowNull: false,
       defaultValue: "trial",
+    },
+    isCurrent: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,

@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../../core/superadmin/control-db");
 
-const Domain = controlSequelize.define(
-  "Domain",
+const ProvisioningJob = controlSequelize.define(
+  "ProvisioningJob",
   {
     id: {
       type: DataTypes.UUID,
@@ -20,48 +20,57 @@ const Domain = controlSequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
     },
-    hostname: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
+    tenantDatabaseId: {
+      type: DataTypes.UUID,
+    },
+    createdBy: {
+      type: DataTypes.UUID,
     },
     type: {
-      type: DataTypes.STRING,
-    },
-    isPrimary: {
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.ENUM(
+        "tenant_create",
+        "tenant_retry",
+        "tenant_migration",
+        "db_connection_test",
+        "domain_verification",
+      ),
       allowNull: false,
-      defaultValue: true,
+      defaultValue: "tenant_create",
     },
     status: {
       type: DataTypes.ENUM(
-        "pending",
-        "pending_dns",
-        "verified",
+        "queued",
+        "running",
+        "succeeded",
         "failed",
-        "disabled",
+        "cancelled",
       ),
       allowNull: false,
-      defaultValue: "pending_dns",
+      defaultValue: "queued",
     },
-    verificationToken: {
+    step: {
       type: DataTypes.STRING,
     },
-    sslStatus: {
-      type: DataTypes.ENUM("pending", "active", "failed", "disabled"),
+    attempts: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: "pending",
+      defaultValue: 0,
     },
-    failureReason: {
+    maxAttempts: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 3,
+    },
+    errorMessage: {
       type: DataTypes.TEXT,
     },
-    verifiedAt: {
+    metadata: {
+      type: DataTypes.JSON,
+    },
+    startedAt: {
       type: DataTypes.DATE,
     },
-    failedAt: {
-      type: DataTypes.DATE,
-    },
-    disabledAt: {
+    finishedAt: {
       type: DataTypes.DATE,
     },
     isDeleted: {
@@ -78,15 +87,13 @@ const Domain = controlSequelize.define(
     },
   },
   {
-    modelName: "Domain",
-    tableName: "domains",
-    timestamps: true,
+    modelName: "ProvisioningJob",
+    tableName: "provisioning_jobs",
     freezeTableName: true,
+    timestamps: true,
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
 );
 
-module.exports = Domain;
-
-
+module.exports = ProvisioningJob;

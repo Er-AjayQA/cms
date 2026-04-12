@@ -37,8 +37,20 @@ async function closeAllTenantConnections() {
   tenantConnectionCache.clear();
 }
 
+async function closeTenantConnection(tenantId) {
+  const sequelize = tenantConnectionCache.get(tenantId);
+
+  if (!sequelize) {
+    return;
+  }
+
+  await sequelize.close();
+  tenantConnectionCache.delete(tenantId);
+}
+
 module.exports = {
   getTenantSequelizeByTenantId,
+  closeTenantConnection,
   closeAllTenantConnections,
 };
 

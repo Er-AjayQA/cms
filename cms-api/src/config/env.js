@@ -15,4 +15,5 @@ module.exports = {
     email: process.env.SUPER_ADMIN_EMAIL || "admin@cms.com",
     password: process.env.SUPER_ADMIN_PASSWORD || "Admin@123",
   },
+  tenantBaseDomain: process.env.TENANT_BASE_DOMAIN || "localhost",
 };

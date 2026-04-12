@@ -58,9 +58,35 @@ const TenantDatabase = controlSequelize.define(
       defaultValue: 0,
     },
     status: {
-      type: DataTypes.ENUM("pending", "ready", "failed"),
+      type: DataTypes.ENUM(
+        "pending",
+        "verifying",
+        "creating",
+        "migrating",
+        "seeding",
+        "ready",
+        "failed",
+      ),
       allowNull: false,
       defaultValue: "pending",
+    },
+    failureReason: {
+      type: DataTypes.TEXT,
+    },
+    lastConnectionTestAt: {
+      type: DataTypes.DATE,
+    },
+    lastMigrationAt: {
+      type: DataTypes.DATE,
+    },
+    verifiedAt: {
+      type: DataTypes.DATE,
+    },
+    readyAt: {
+      type: DataTypes.DATE,
+    },
+    failedAt: {
+      type: DataTypes.DATE,
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,
@@ -84,6 +110,12 @@ const TenantDatabase = controlSequelize.define(
     updatedAt: "updatedAt",
   },
 );
+
+TenantDatabase.prototype.toJSON = function toJSON() {
+  const values = { ...this.get() };
+  values.dbPassword = values.dbPassword ? "********" : null;
+  return values;
+};
 
 module.exports = TenantDatabase;
 
