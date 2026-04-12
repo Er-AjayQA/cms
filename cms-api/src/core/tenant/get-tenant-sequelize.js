@@ -1,5 +1,5 @@
 const { Sequelize } = require("sequelize");
-const { TenantDatabase } = require("../../models/control");
+const { TenantDatabase } = require("../../modules/super-admin/models");
 
 const tenantConnectionCache = new Map();
 
@@ -41,3 +41,4 @@ module.exports = {
   getTenantSequelizeByTenantId,
   closeAllTenantConnections,
 };
+

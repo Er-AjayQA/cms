@@ -50,8 +50,18 @@ async function seedTenant({
     if (!existingPages) {
       await Page.bulkCreate(
         [
-          { siteId: site.id, title: "Home", slug: "/", status: "draft" },
-          { siteId: site.id, title: "About", slug: "/about", status: "draft" },
+          {
+            siteId: site.id,
+            title: "Home",
+            slug: "/",
+            status: "draft",
+          },
+          {
+            siteId: site.id,
+            title: "About",
+            slug: "/about",
+            status: "draft",
+          },
         ],
         { transaction },
       );

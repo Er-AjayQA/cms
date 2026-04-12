@@ -1,6 +1,6 @@
 const app = require("./app");
 const { port } = require("./config/env");
-const { controlSequelize } = require("./core/db/control-db");
+const { controlSequelize } = require("./core/superadmin/control-db");
 
 async function startServer() {
   try {
@@ -17,3 +17,4 @@ async function startServer() {
 }
 
 startServer();
+

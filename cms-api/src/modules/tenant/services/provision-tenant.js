@@ -1,7 +1,7 @@
 const slugify = require("slugify");
 const { controlDb } = require("../../../config/env");
-const { getMysqlAdminConnection } = require("../../../core/db/mysql-admin");
-const { Tenant, TenantDatabase } = require("../../../models/control");
+const { getMysqlAdminConnection } = require("../../../core/superadmin/mysql-admin");
+const { Tenant, TenantDatabase } = require("../../super-admin/models");
 const { initTenantSchema } = require("./init-tenant-schema");
 const { seedTenant } = require("./seed-tenant");
 
@@ -11,7 +11,7 @@ async function provisionTenant({
   adminEmail,
   adminPassword,
   subscription_status = "trial",
-  onboarding_source = "platform",
+  onboarding_source = "control_panel",
   role = "owner",
   dbType = "managed",
   dbName,
@@ -141,3 +141,6 @@ async function provisionTenant({
 }
 
 module.exports = { provisionTenant };
+
+
+

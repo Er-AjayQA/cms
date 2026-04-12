@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
-const routes = require("./routes");
 const { errorHandler } = require("./middlewares/error-handler");
+const superAdminAuthRoutes = require("./modules/super-admin/auth/routes/auth.routes");
+const superAdminRoutes = require("./modules/super-admin/routes/super-admin.routes");
 
 const app = express();
 
@@ -19,7 +20,8 @@ app.get("/health", (req, res) => {
   res.json({ success: true, message: "API is healthy" });
 });
 
-app.use("/api", routes);
+app.use("/api/super-admin/auth", superAdminAuthRoutes);
+app.use("/api/super-admin", superAdminRoutes);
 app.use(errorHandler);
 
 module.exports = app;

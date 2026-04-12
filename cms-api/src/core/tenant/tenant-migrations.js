@@ -1,5 +1,5 @@
 const path = require("path");
-const { runMigrations } = require("../db/migration-runner");
+const { runMigrations } = require("../shared/migration-runner");
 
 async function runTenantMigrations(sequelize) {
   return runMigrations({
@@ -10,3 +10,4 @@ async function runTenantMigrations(sequelize) {
 }
 
 module.exports = { runTenantMigrations };
+

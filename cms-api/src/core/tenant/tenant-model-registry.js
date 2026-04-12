@@ -1,4 +1,4 @@
-const { loadTenantModels } = require("../../models/tenant");
+const { loadTenantModels } = require("../../modules/tenant/models");
 
 const registry = new WeakMap();
 
@@ -13,3 +13,4 @@ function getTenantModels(sequelize) {
 }
 
 module.exports = { getTenantModels };
+
