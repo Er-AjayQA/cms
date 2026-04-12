@@ -2,12 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export function DashboardStat({ label, value, note }) {
   return (
-    <Card className="animate-fade-up">
-      <CardHeader>
+    <Card className="animate-fade-up border-border/70 bg-white/80">
+      <CardHeader className="p-5">
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-4xl">{value}</CardTitle>
+        <CardTitle className="text-3xl">{value ?? 0}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-5 pt-0">
         <p className="text-sm text-muted-foreground">{note}</p>
       </CardContent>
     </Card>

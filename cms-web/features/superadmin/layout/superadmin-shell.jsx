@@ -72,7 +72,7 @@ export function SuperadminShell({
       >
         <SidebarHeader className="p-4">
           <Link href={homeHref}>
-            <div className="rounded-[24px] border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-sm transition hover:bg-sidebar-accent/60">
+            <div className="rounded-lg border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-sm transition hover:bg-sidebar-accent/60">
               <CmsLogo />
             </div>
           </Link>
@@ -134,7 +134,7 @@ export function SuperadminShell({
         <SidebarSeparator />
 
         <SidebarFooter className="p-4">
-          <div className="rounded-[10px] p-3">
+          <div className="rounded-lg p-3">
             <div className="flex items-center gap-3">
               <Button
                 variant="destructive"
@@ -151,7 +151,7 @@ export function SuperadminShell({
       </Sidebar>
 
       <SidebarInset className="relative h-svh overflow-hidden bg-transparent !shadow-none !rounded-none !border-none">
-        <header className="z-20 mb-6 rounded-[10px] border border-border/70 bg-background/85 px-4 py-4 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.5)] backdrop-blur md:px-6">
+        <header className="z-20 mb-6 rounded-lg border border-border/70 bg-background/85 px-4 py-4 shadow-sm backdrop-blur md:px-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="w-10 h-10 border rounded-full border-border/70 bg-white/70" />
@@ -171,16 +171,16 @@ export function SuperadminShell({
               <div className="relative w-full md:w-[340px]">
                 <Search className="absolute -translate-y-1/2 pointer-events-none left-3 top-1/2 size-4 text-muted-foreground" />
                 <Input
-                  className="pl-10 rounded-full h-11 border-border/70 bg-white/70"
+                  className="h-10 rounded-md border-border/70 bg-white/70 pl-10"
                   placeholder="Search tenants, domains, issues"
                 />
               </div>
 
               <div className="flex items-center gap-3">
-                <button className="flex items-center justify-center transition border rounded-full size-11 border-border/70 bg-white/70 text-foreground hover:bg-white">
+                <button className="flex size-10 items-center justify-center rounded-md border border-border/70 bg-white/70 text-foreground transition hover:bg-white">
                   <Bell className="size-4" />
                 </button>
-                <Badge className="rounded-full px-4 py-2 text-xs uppercase tracking-[0.28em]">
+                <Badge className="rounded-md px-3 py-2 text-xs uppercase">
                   {config.badge}
                 </Badge>
               </div>
@@ -191,7 +191,7 @@ export function SuperadminShell({
           <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-none">
             <div className="mx-auto w-full max-w-7xl">
               {showHero && (
-                <section className="mb-8 rounded-[10px] border border-white/60 bg-white/55 p-6 shadow-[0_28px_90px_-56px_rgba(15,23,42,0.55)] backdrop-blur md:p-8">
+                <section className="mb-8 rounded-lg border border-white/60 bg-white/55 p-6 shadow-sm backdrop-blur md:p-8">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-3xl animate-fade-up">
                       <p className="mb-3 text-sm uppercase tracking-[0.4em] text-muted-foreground">
@@ -205,7 +205,7 @@ export function SuperadminShell({
                       </p>
                     </div>
 
-                    <div className="rounded-[26px] border border-border/60 bg-background/75 p-4">
+                    <div className="rounded-lg border border-border/60 bg-background/75 p-4">
                       <div className="flex items-center gap-3">
                         <CmsLogo compact />
                         <div>
@@ -223,7 +223,7 @@ export function SuperadminShell({
 
               <div className="pb-8">{children}</div>
 
-              <footer className="rounded-[10px] border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
+              <footer className="rounded-lg border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
                     <CmsLogo compact />
