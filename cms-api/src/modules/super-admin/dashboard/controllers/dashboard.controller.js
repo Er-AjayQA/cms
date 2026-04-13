@@ -23,6 +23,7 @@ function formatRecentJob(job) {
     id: job.id,
     tenantId: job.tenantId,
     companyName: job.tenant?.companyName || null,
+    dbName: job.tenant?.database?.dbName || null,
     slug: job.tenant?.slug || null,
     type: job.type,
     status: job.status,
@@ -37,6 +38,12 @@ function formatRecentJob(job) {
 
 function formatFailedTenant(tenant) {
   const latestJob = tenant.provisioningJobs?.[0] || null;
+  const message =
+    latestJob?.errorMessage || tenant.failureReason || "Provisioning failed";
+  const isDatabaseFailure =
+    /database|db|access denied|connect|connection|authenticate|password|host/i.test(
+      message,
+    );
 
   return {
     id: tenant.id,
@@ -45,6 +52,9 @@ function formatFailedTenant(tenant) {
     status: tenant.status,
     provisioningStep: tenant.provisioningStep,
     failureReason: tenant.failureReason,
+    message,
+    step: latestJob?.step || tenant.provisioningStep,
+    action: isDatabaseFailure ? "Fix DB and Retry" : "Retry Provisioning",
     latestJobStatus: latestJob?.status || null,
     latestJobError: latestJob?.errorMessage || null,
     failedAt: tenant.failedAt,
@@ -72,6 +82,8 @@ function formatFailedDatabase(database) {
     dbType: database.dbType,
     status: database.status,
     failureReason: database.failureReason,
+    message: database.failureReason || "Database provisioning failed",
+    action: "Fix DB and Retry",
     failedAt: database.failedAt,
   };
 }
@@ -104,12 +116,27 @@ async function getDashboardDetails(req, res) {
     ] = await Promise.all([
       countByStatus(
         Tenant,
-        ["pending", "provisioning", "active", "failed", "suspended", "archived"],
+        [
+          "pending",
+          "provisioning",
+          "active",
+          "failed",
+          "suspended",
+          "archived",
+        ],
         tenantWhere,
       ),
       countByStatus(
         TenantDatabase,
-        ["pending", "verifying", "creating", "migrating", "seeding", "ready", "failed"],
+        [
+          "pending",
+          "verifying",
+          "creating",
+          "migrating",
+          "seeding",
+          "ready",
+          "failed",
+        ],
         databaseWhere,
       ),
       countByStatus(
@@ -141,6 +168,13 @@ async function getDashboardDetails(req, res) {
             model: Tenant,
             as: "tenant",
             attributes: ["companyName", "slug"],
+            include: [
+              {
+                model: TenantDatabase,
+                as: "database",
+                attributes: ["dbName"],
+              },
+            ],
           },
         ],
         order: [["createdAt", "DESC"]],
@@ -198,13 +232,18 @@ async function getDashboardDetails(req, res) {
           {
             model: Tenant,
             as: "tenant",
-            attributes: ["companyName", "slug"],
+            attributes: ["companyName", "slug", "status"],
           },
         ],
         order: [["failedAt", "DESC"]],
         limit: 5,
       }),
     ]);
+
+    const failedTenantIds = new Set(failedTenants.map((tenant) => tenant.id));
+    const standaloneFailedDatabases = failedDatabases.filter(
+      (database) => !failedTenantIds.has(database.tenantId),
+    );
 
     return ok(res, {
       tenants: {
@@ -236,7 +275,7 @@ async function getDashboardDetails(req, res) {
       attention: {
         failedTenants: failedTenants.map(formatFailedTenant),
         pendingDomains: pendingDomains.map(formatPendingDomain),
-        failedDatabases: failedDatabases.map(formatFailedDatabase),
+        failedDatabases: standaloneFailedDatabases.map(formatFailedDatabase),
       },
       recentProvisioningJobs: recentProvisioningJobs.map(formatRecentJob),
     });

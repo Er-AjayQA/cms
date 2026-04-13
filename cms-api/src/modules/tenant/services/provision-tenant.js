@@ -400,7 +400,8 @@ async function provisionTenant({
 
     const requestedHostname = normalizeHostname(hostname);
     const tenantHostname =
-      requestedHostname || `${normalizedSlug}.${tenantBaseDomain}`.toLowerCase();
+      requestedHostname ||
+      `${normalizedSlug}.${tenantBaseDomain}`.toLowerCase();
 
     await Domain.create(
       {
@@ -430,6 +431,8 @@ async function provisionTenant({
           dbType,
           hostname: tenantHostname,
           planId: plan.id,
+          adminEmail: adminEmail,
+          adminPassword: adminPassword,
         },
       },
       { transaction: tx },
@@ -490,9 +493,7 @@ async function provisionTenant({
   }
 }
 
-async function retryProvisionTenant({
-  tenantId,
-}) {
+async function retryProvisionTenant({ tenantId }) {
   const tenant = await Tenant.findOne({
     where: { id: tenantId, isDeleted: false },
   });
@@ -595,4 +596,105 @@ async function retryProvisionTenant({
   }
 }
 
-module.exports = { provisionTenant, retryProvisionTenant };
+async function provisionUpdatedTenantDatabase({ tenantId }) {
+  const tenant = await Tenant.findOne({
+    where: { id: tenantId, isDeleted: false },
+  });
+
+  if (!tenant) {
+    const error = new Error("Tenant not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const tenantDatabase = await TenantDatabase.findOne({
+    where: { tenantId, isDeleted: false },
+  });
+
+  if (!tenantDatabase) {
+    const error = new Error("Tenant database config not found");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const adminSeed = await TenantAdminSeed.findOne({
+    where: { tenantId, isDeleted: false },
+    order: [["createdAt", "DESC"]],
+  });
+
+  if (!adminSeed) {
+    const error = new Error("Admin seed config not found");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const provisioningJob = await ProvisioningJob.create({
+    tenantId: tenant.id,
+    tenantDatabaseId: tenantDatabase.id,
+    type: "tenant_migration",
+    status: "queued",
+    step: "db_config_updated",
+    attempts: 0,
+    maxAttempts: 3,
+    errorMessage: null,
+    metadata: {
+      dbType: tenantDatabase.dbType,
+      source: "tenant_update",
+    },
+  });
+
+  try {
+    return await executeProvisioning({
+      tenant,
+      tenantDatabase,
+      provisioningJob,
+      adminSeed,
+    });
+  } catch (error) {
+    const failedAt = new Date();
+
+    await Tenant.update(
+      {
+        status: "failed",
+        failureReason: error.message,
+        failedAt,
+      },
+      { where: { id: tenant.id } },
+    ).catch(() => {});
+
+    await TenantDatabase.update(
+      {
+        status: "failed",
+        failureReason: error.message,
+        failedAt,
+      },
+      { where: { id: tenantDatabase.id } },
+    ).catch(() => {});
+
+    await ProvisioningJob.update(
+      {
+        status: "failed",
+        errorMessage: error.message,
+        finishedAt: failedAt,
+      },
+      { where: { id: provisioningJob.id } },
+    ).catch(() => {});
+
+    await TenantAdminSeed.update(
+      {
+        status: "failed",
+        failureReason: error.message,
+        failedAt,
+      },
+      { where: { id: adminSeed.id } },
+    ).catch(() => {});
+
+    throw error;
+  }
+}
+
+module.exports = {
+  provisionTenant,
+  retryProvisionTenant,
+  provisionUpdatedTenantDatabase,
+};

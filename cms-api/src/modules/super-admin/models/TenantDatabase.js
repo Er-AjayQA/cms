@@ -111,12 +111,6 @@ const TenantDatabase = controlSequelize.define(
   },
 );
 
-TenantDatabase.prototype.toJSON = function toJSON() {
-  const values = { ...this.get() };
-  values.dbPassword = values.dbPassword ? "********" : null;
-  return values;
-};
-
 module.exports = TenantDatabase;
 
 

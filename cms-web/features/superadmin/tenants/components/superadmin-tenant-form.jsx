@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSuperadminTenant } from "@/features/superadmin/tenants/providers/superadmin-tenants-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,23 +20,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const SuperadminTenantForm = () => {
   const {
     formik,
     activeView,
     closeForm,
-    roleOptions,
     subscriptionStatusOptions,
     sourceOptions,
     dbTypeOptions,
     plansOptions,
+    loadedDbType,
+    selectedRecord,
     setPlansOptions,
     isPlansLoading,
     setIsPlansLoading,
   } = useSuperadminTenant();
 
   const isReadOnly = activeView === "view";
+  const isEditing = activeView === "edit";
+  const canEditAdminSeed =
+    isEditing && selectedRecord?.actions?.canEditAdminSeed;
+  const isAdminLocked = isReadOnly || (isEditing && !canEditAdminSeed);
+  const [pendingDbType, setPendingDbType] = useState(null);
   const shouldShowDatabaseInfo =
     activeView === "view" || formik.values.dbType === "own";
   const formTitle = {
@@ -50,8 +67,64 @@ export const SuperadminTenantForm = () => {
     create: "Create a new tenant workspace with validated details.",
   };
 
+  const handleDbTypeChange = (value) => {
+    if (isEditing && value !== formik.values.dbType) {
+      setPendingDbType(value);
+      return;
+    }
+
+    applyDbTypeChange(value);
+  };
+
+  const applyDbTypeChange = (value) => {
+    formik.setFieldValue("dbType", value);
+
+    if (
+      activeView === "edit" &&
+      loadedDbType === "managed" &&
+      value === "own"
+    ) {
+      formik.setFieldValue("dbName", "");
+      formik.setFieldValue("dbHost", "");
+      formik.setFieldValue("dbPort", 3306);
+      formik.setFieldValue("dbUser", "");
+      formik.setFieldValue("dbPassword", "");
+      formik.setFieldValue("currentVersion", 0);
+    }
+  };
+
+  const confirmDbTypeChange = () => {
+    if (pendingDbType) {
+      applyDbTypeChange(pendingDbType);
+      setPendingDbType(null);
+    }
+  };
+
   return (
     <section className="space-y-6">
+      <AlertDialog
+        open={Boolean(pendingDbType)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDbType(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change database type?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Changing database type can create a new tenant database. Existing
+              tenant data may not be available after the switch.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current type</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDbTypeChange}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex flex-col gap-4 rounded-[10px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.4)] backdrop-blur">
         <div>
           <h1 className="text-2xl leading-none tracking-tight font-display">
@@ -91,36 +164,6 @@ export const SuperadminTenantForm = () => {
               </div>
 
               <div className="col-span-12 md:col-span-6 space-y-2">
-                <Label>Role</Label>
-                <Select
-                  name="role"
-                  value={formik.values.role}
-                  onValueChange={(value) => formik.setFieldValue("role", value)}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    onBlur={() => formik.setFieldTouched("role", true)}
-                  >
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {roleOptions.map((option, idx) => {
-                        return (
-                          <SelectItem key={idx} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6 space-y-2">
                 <Label>Slug</Label>
                 <Input
                   name="slug"
@@ -131,36 +174,6 @@ export const SuperadminTenantForm = () => {
                   error={formik.errors.slug}
                   disabled={isReadOnly}
                 />
-              </div>
-
-              <div className="col-span-12 md:col-span-6 space-y-2">
-                <Label>DB Type</Label>
-                <Select
-                  name="dbType"
-                  value={formik.values.dbType}
-                  onValueChange={(value) =>
-                    formik.setFieldValue("dbType", value)
-                  }
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    onBlur={() => formik.setFieldTouched("dbType", true)}
-                  >
-                    <SelectValue placeholder="Select a DB type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {dbTypeOptions.map((option, idx) => {
-                        return (
-                          <SelectItem key={idx} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
@@ -203,10 +216,14 @@ export const SuperadminTenantForm = () => {
           <CardHeader className="py-2">
             <CardTitle className="text-md">Admin login</CardTitle>
             <CardDescription>
-              Create the first tenant admin account.
+              {activeView === "create"
+                ? "Enter the correct admin credentials. The first admin is created as owner."
+                : canEditAdminSeed
+                  ? "Provisioning has not seeded this admin yet. You can fix these details before retry."
+                  : "Admin email and password cannot be changed after tenant creation."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="py-5">
+          <CardContent className="py-5 space-y-4">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-6 space-y-2">
                 <Label>Email</Label>
@@ -218,7 +235,7 @@ export const SuperadminTenantForm = () => {
                   placeholder="e.g: admin@gmail.com..."
                   value={formik.values.adminEmail}
                   error={formik.errors.adminEmail}
-                  disabled={isReadOnly}
+                  disabled={isAdminLocked}
                 />
                 {formik.touched.adminEmail && formik.errors.adminEmail && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
@@ -230,14 +247,20 @@ export const SuperadminTenantForm = () => {
               <div className="col-span-12 md:col-span-6 space-y-2">
                 <Label>Password</Label>
                 <Input
-                  type="password"
+                  type="text"
                   name="adminPassword"
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
-                  placeholder="Enter password..."
+                  placeholder={
+                    isEditing && canEditAdminSeed
+                      ? "Leave blank to keep saved password"
+                      : isEditing
+                        ? "Admin password cannot be changed"
+                      : "Enter password..."
+                  }
                   value={formik.values.adminPassword}
                   error={formik.errors.adminPassword}
-                  disabled={isReadOnly}
+                  disabled={isAdminLocked}
                 />
                 {formik.touched.adminPassword &&
                   formik.errors.adminPassword && (
@@ -247,20 +270,51 @@ export const SuperadminTenantForm = () => {
                   )}
               </div>
             </div>
+
           </CardContent>
         </Card>
 
         {/* DB Info */}
-        {shouldShowDatabaseInfo && (
-          <Card className="overflow-hidden border-border/70 bg-white/70">
-            <CardHeader className="py-2">
+        <Card className="overflow-hidden border-border/70 bg-white/70">
+          <CardHeader className="py-2 flex flex-row justify-between">
+            <div>
               <CardTitle className="text-md">Database info</CardTitle>
               <CardDescription>
                 {activeView === "view"
                   ? "View tenant database configuration."
                   : "Provide database details."}
               </CardDescription>
-            </CardHeader>
+            </div>
+
+            <div className="flex gap-2 items-center space-y-2">
+              <Label className="w-full text-right">DB Type</Label>
+              <Select
+                name="dbType"
+                value={formik.values.dbType}
+                onValueChange={handleDbTypeChange}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger
+                  className="w-[500px] !m-0"
+                  onBlur={() => formik.setFieldTouched("dbType", true)}
+                >
+                  <SelectValue placeholder="Select a DB type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {dbTypeOptions.map((option, idx) => {
+                      return (
+                        <SelectItem key={idx} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          {formik.values.dbType === "own" && (
             <CardContent className="py-5">
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-12 md:col-span-6 space-y-2">
@@ -363,8 +417,8 @@ export const SuperadminTenantForm = () => {
                 </div>
               )}
             </CardContent>
-          </Card>
-        )}
+          )}
+        </Card>
 
         <div className="flex justify-end gap-3">
           <Button onClick={closeForm} type="button" variant="outline">

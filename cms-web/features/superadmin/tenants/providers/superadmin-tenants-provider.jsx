@@ -11,6 +11,7 @@ import {
   deleteSuperadminTenant,
   getSuperadminTenants,
   getSuperadminTenantById,
+  retrySuperadminTenantProvisioning,
   updateSuperadminTenant,
   updateSuperadminTenantStatus,
 } from "@/features/superadmin/tenants/services/superadmin-tenant-api";
@@ -18,16 +19,42 @@ import { getSuperadminSubscriptionPlans } from "../../subscriptions/services/sup
 
 const SuperadminTenantContext = createContext();
 
-const TENANT_ROLE_OPTIONS = [
-  { label: "Owner", value: "owner" },
-  { label: "Admin", value: "admin" },
-  { label: "Editor", value: "editor" },
-];
-
 const TENANT_DATABASE_TYPE_OPTIONS = [
   { label: "Own", value: "own" },
   { label: "Managed", value: "managed" },
 ];
+
+const buildTenantPayload = (values, view, record) => {
+  if (view !== "edit") {
+    return { ...values };
+  }
+
+  const payload = {
+    companyName: values.companyName,
+    slug: values.slug,
+    planId: values.planId,
+    dbType: values.dbType,
+  };
+
+  if (record?.actions?.canEditAdminSeed) {
+    payload.adminEmail = values.adminEmail;
+
+    if (values.adminPassword) {
+      payload.adminPassword = values.adminPassword;
+    }
+  }
+
+  if (values.dbType === "own") {
+    payload.dbName = values.dbName;
+    payload.dbHost = values.dbHost;
+    payload.dbPort = values.dbPort;
+    payload.dbUser = values.dbUser;
+    payload.dbPassword = values.dbPassword;
+    payload.currentVersion = values.currentVersion;
+  }
+
+  return payload;
+};
 
 export const SuperadminTenantProvider = ({ children }) => {
   /* ===================================
@@ -41,7 +68,8 @@ export const SuperadminTenantProvider = ({ children }) => {
   const [plansOptions, setPlansOptions] = useState([]);
   const [isPlansLoading, setIsPlansLoading] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const roleOptions = TENANT_ROLE_OPTIONS;
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [loadedDbType, setLoadedDbType] = useState(null);
   const dbTypeOptions = TENANT_DATABASE_TYPE_OPTIONS;
 
   /* ===================================
@@ -69,7 +97,6 @@ export const SuperadminTenantProvider = ({ children }) => {
     adminEmail: "",
     adminPassword: "",
     planId: "",
-    role: "owner",
     dbType: "managed",
     dbName: null,
     dbHost: null,
@@ -85,7 +112,7 @@ export const SuperadminTenantProvider = ({ children }) => {
     enableReinitialize: true,
     onSubmit: async (values) => {
       try {
-        const payload = { ...values };
+        const payload = buildTenantPayload(values, activeView, selectedRecord);
         const successMessage =
           activeView === "edit"
             ? "Tenant updated successfully"
@@ -147,14 +174,16 @@ export const SuperadminTenantProvider = ({ children }) => {
     try {
       const res = await getSuperadminTenantById(id);
       const data = res?.data?.data;
+      const recordDbType = data?.database?.dbType ?? "managed";
+      setSelectedRecord(data || null);
 
       formik.setValues({
         companyName: data?.companyName ?? "",
         slug: data?.slug ?? "",
         adminEmail: data?.adminUser?.email ?? "",
         adminPassword: "",
-        role: data?.adminUser?.role ?? "owner",
-        dbType: data?.database?.dbType ?? "managed",
+        planId: data?.currentSubscription?.plan?.id ?? "",
+        dbType: recordDbType,
         dbName: data?.database?.dbName ?? null,
         dbHost: data?.database?.dbHost ?? null,
         dbPort: data?.database?.dbPort ?? null,
@@ -162,14 +191,8 @@ export const SuperadminTenantProvider = ({ children }) => {
         dbPassword: data?.database?.dbPassword ?? null,
         currentVersion: data?.database?.currentVersion ?? null,
       });
+      setLoadedDbType(recordDbType);
 
-      if (plansOptions?.length > 0 && data?.currentSubscription?.id) {
-        const getPlan = plansOptions?.find(
-          (plan) => plan?.id === data?.currentSubscription?.id,
-        );
-
-        formik.setFieldValue("planId", getPlan?.id || "");
-      }
       return true;
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
@@ -186,11 +209,15 @@ export const SuperadminTenantProvider = ({ children }) => {
   const closeForm = () => {
     setActiveView("listing");
     setSelectedId(null);
+    setSelectedRecord(null);
+    setLoadedDbType(null);
     formik.resetForm({ values: initialFormikValues });
   };
 
   const openCreateForm = () => {
     setSelectedId(null);
+    setSelectedRecord(null);
+    setLoadedDbType(null);
     formik.resetForm({ values: initialFormikValues });
     setActiveView("create");
   };
@@ -212,6 +239,23 @@ export const SuperadminTenantProvider = ({ children }) => {
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
       toast.error(getApiErrorMessage(error, "Failed to delete tenant"));
+    }
+  };
+
+  const retryRecord = async (id) => {
+    setIsRecordLoading(true);
+    try {
+      const res = await retrySuperadminTenantProvisioning(id);
+      toast.success(res?.data?.message || "Tenant provisioning retried");
+      await fetchRecordById(id);
+      fetchRecords();
+    } catch (error) {
+      console.error("Error details:", error.response?.data || error);
+      toast.error(
+        getApiErrorMessage(error, "Failed to retry tenant provisioning"),
+      );
+    } finally {
+      setIsRecordLoading(false);
     }
   };
 
@@ -270,13 +314,15 @@ export const SuperadminTenantProvider = ({ children }) => {
     openRecord,
     isListLoading,
     isRecordLoading,
+    selectedRecord,
     records,
     deleteRecord,
+    retryRecord,
     search,
     setSearch,
-    roleOptions,
     dbTypeOptions,
     plansOptions,
+    loadedDbType,
     setPlansOptions,
     isPlansLoading,
     setIsPlansLoading,

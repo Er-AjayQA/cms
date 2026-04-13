@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  ChevronRight,
-  LogOut,
-  Search,
-} from "lucide-react";
+import { Bell, ChevronRight, LogOut, Search } from "lucide-react";
 
 import { CmsLogo } from "@/components/cms-logo";
 import { Badge } from "@/components/ui/badge";
@@ -190,37 +185,6 @@ export function SuperadminShell({
         <div className="flex h-svh flex-col px-4 md:px-6">
           <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-none">
             <div className="mx-auto w-full max-w-7xl">
-              {showHero && (
-                <section className="mb-8 rounded-lg border border-white/60 bg-white/55 p-6 shadow-sm backdrop-blur md:p-8">
-                  <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-3xl animate-fade-up">
-                      <p className="mb-3 text-sm uppercase tracking-[0.4em] text-muted-foreground">
-                        {eyebrow}
-                      </p>
-                      <h1 className="text-4xl leading-none tracking-tight font-display md:text-6xl">
-                        {title}
-                      </h1>
-                      <p className="max-w-2xl mt-4 text-base leading-7 text-muted-foreground md:text-lg">
-                        {description}
-                      </p>
-                    </div>
-
-                    <div className="rounded-lg border border-border/60 bg-background/75 p-4">
-                      <div className="flex items-center gap-3">
-                        <CmsLogo compact />
-                        <div>
-                          <p className="font-medium">Brand-safe workspace</p>
-                          <p className="text-sm text-muted-foreground">
-                            Collapsible navigation, focused header, and shared
-                            system footer.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
               <div className="pb-8">{children}</div>
 
               <footer className="rounded-lg border border-border/70 bg-background/75 px-5 py-2 text-sm text-muted-foreground backdrop-blur">
@@ -239,4 +203,3 @@ export function SuperadminShell({
     </SidebarProvider>
   );
 }
-

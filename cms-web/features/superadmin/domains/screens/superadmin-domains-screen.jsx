@@ -11,11 +11,7 @@ import { SuperadminShell } from "@/features/superadmin/layout/superadmin-shell";
 const SuperadminDomainModeRenderer = () => {
   const { activeView } = useSuperadminDomain();
 
-  if (
-    activeView === "create" ||
-    activeView === "edit" ||
-    activeView === "view"
-  ) {
+  if (activeView === "manage" || activeView === "create") {
     return <SuperadminDomainForm />;
   }
 

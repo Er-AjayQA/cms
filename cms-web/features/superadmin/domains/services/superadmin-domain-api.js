@@ -15,5 +15,14 @@ export const deleteSuperadminDomain = (domainId) =>
 export const getSuperadminDomains = (search = "") =>
   api.get("/super-admin/domains", { params: { search } });
 
+export const getSuperadminDomainsByTenant = (id) =>
+  api.get(`/super-admin/domains/byId-tenant/${id}`);
+
+export const verifySuperadminDomain = (domainId) =>
+  api.post(`/super-admin/domains/${domainId}/verify`);
+
+export const checkSuperadminDomainSsl = (domainId) =>
+  api.post(`/super-admin/domains/${domainId}/check-ssl`);
+
 export const getSuperadminDomainById = (domainId) =>
   api.get(`/super-admin/domains/${domainId}`);

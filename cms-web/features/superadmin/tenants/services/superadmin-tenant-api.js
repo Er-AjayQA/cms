@@ -9,6 +9,9 @@ export const updateSuperadminTenant = (tenantId, data) =>
 export const updateSuperadminTenantStatus = (tenantId, data) =>
   api.patch(`/super-admin/tenants/${tenantId}`, data);
 
+export const retrySuperadminTenantProvisioning = (tenantId) =>
+  api.post(`/super-admin/tenants/${tenantId}/retry-provisioning`);
+
 export const deleteSuperadminTenant = (tenantId) =>
   api.delete(`/super-admin/tenants/${tenantId}`);
 

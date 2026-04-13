@@ -3,6 +3,7 @@
 import { SuperadminShell } from "@/features/superadmin/layout/superadmin-shell";
 import { SuperadminTenantForm } from "@/features/superadmin/tenants/components/superadmin-tenant-form";
 import { SuperadminTenantListing } from "@/features/superadmin/tenants/components/superadmin-tenant-listing";
+import { SuperadminTenantView } from "@/features/superadmin/tenants/components/superadmin-tenant-view";
 import {
   SuperadminTenantProvider,
   useSuperadminTenant,
@@ -11,11 +12,11 @@ import {
 const SuperadminTenantModeRenderer = () => {
   const { activeView } = useSuperadminTenant();
 
-  if (
-    activeView === "create" ||
-    activeView === "edit" ||
-    activeView === "view"
-  ) {
+  if (activeView === "view") {
+    return <SuperadminTenantView />;
+  }
+
+  if (activeView === "create" || activeView === "edit") {
     return <SuperadminTenantForm />;
   }
 

@@ -136,18 +136,21 @@ export function SuperadminDashboardView() {
                   <TableHead>Status</TableHead>
                   <TableHead>Step</TableHead>
                   <TableHead className="text-center">Attempts</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Finished</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isDashboardLoading ? (
-                  <TableListingSkeleton listingLength={3} columnLength={7} />
+                  <TableListingSkeleton listingLength={3} columnLength={5} />
                 ) : dashboardData?.recentProvisioningJobs?.length !== 0 ? (
                   dashboardData?.recentProvisioningJobs?.map((job) => (
                     <TableRow key={`${job.tenant}-${job.startedAt}`}>
-                      <TableCell className="font-medium">
-                        {job.companyName}
+                      <TableCell className="py-1">
+                        <p className="text-sm font-semibold text-muted-foreground">
+                          {job.companyName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          DB: {job.dbName || "-"}
+                        </p>
                       </TableCell>
                       <TableCell>{job.type}</TableCell>
                       <TableCell>
@@ -157,12 +160,10 @@ export function SuperadminDashboardView() {
                       <TableCell className="text-center">
                         {job.attempts}
                       </TableCell>
-                      <TableCell>{job.startedAt}</TableCell>
-                      <TableCell>{job.finishedAt || "Running"}</TableCell>
                     </TableRow>
                   ))
                 ) : (
-                  <TableListingNoRecords span={7} />
+                  <TableListingNoRecords span={5} />
                 )}
               </TableBody>
             </Table>
@@ -184,7 +185,7 @@ export function SuperadminDashboardView() {
                 title={tenant.companyName}
                 detail={tenant.message}
                 meta={tenant.step}
-                action="Retry"
+                action={tenant.action}
               />
             ))}
             {dashboardData?.attention?.pendingDomains.map((domain) => (
@@ -202,7 +203,7 @@ export function SuperadminDashboardView() {
                 title={database.companyName}
                 detail={database.message}
                 meta={`${database.dbType} database`}
-                action="Edit DB"
+                action={database.action}
               />
             ))}
           </CardContent>

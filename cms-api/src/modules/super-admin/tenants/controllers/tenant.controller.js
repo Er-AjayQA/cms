@@ -1,4 +1,6 @@
 const { Op } = require("sequelize");
+const bcrypt = require("bcryptjs");
+const { controlDb } = require("../../../../config/env");
 const {
   Tenant,
   TenantDatabase,
@@ -6,10 +8,12 @@ const {
   TenantSubscriptionPlan,
   SubscriptionPlan,
   ProvisioningJob,
+  TenantAdminSeed,
 } = require("../../models");
 const {
   provisionTenant,
   retryProvisionTenant,
+  provisionUpdatedTenantDatabase,
 } = require("../../../tenant/services/provision-tenant");
 const {
   getTenantSequelizeByTenantId,
@@ -43,6 +47,33 @@ function getTenantErrorMessage(error) {
   return error.message;
 }
 
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function getSubscriptionEndDate(startDate, billingCycle) {
+  const endDate = new Date(startDate);
+
+  if (billingCycle === "monthly") {
+    endDate.setMonth(endDate.getMonth() + 1);
+    return endDate;
+  }
+
+  if (billingCycle === "yearly") {
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    return endDate;
+  }
+
+  return null;
+}
+
+function getManagedDbName(slug, tenantId) {
+  const suffix = tenantId.replace(/-/g, "").slice(0, 8);
+  return `cms_tenant_${slug.slice(0, 32)}_${suffix}`;
+}
+
 async function createTenant(req, res) {
   try {
     const {
@@ -55,8 +86,8 @@ async function createTenant(req, res) {
 
       // Optional
       slug,
-      onboarding_source = "control_panel",
       role = "owner",
+      onboarding_source = "control_panel",
       dbName,
       dbHost,
       dbPort = 3306,
@@ -206,10 +237,11 @@ async function getByIdTenant(req, res) {
       include: [
         { model: TenantDatabase, as: "database" },
         { model: Domain, as: "domains" },
+        { model: TenantAdminSeed, as: "adminSeed" },
         {
           model: TenantSubscriptionPlan,
           as: "subscriptions",
-          where: { isCurrent: true, isDeleted: false },
+          where: { isDeleted: false },
           required: false,
           include: [{ model: SubscriptionPlan, as: "plan" }],
         },
@@ -219,7 +251,6 @@ async function getByIdTenant(req, res) {
           where: { isDeleted: false },
           required: false,
           separate: true,
-          limit: 5,
           order: [["createdAt", "DESC"]],
         },
       ],
@@ -236,7 +267,7 @@ async function getByIdTenant(req, res) {
       const { User } = getTenantModels(sequelize);
       const adminUser = await User.findOne({
         where: {
-          role: { [Op.in]: ["owner", "admin"] },
+          role: { [Op.in]: ["owner", "admin", "editor"] },
           isDeleted: false,
         },
         order: [["createdAt", "ASC"]],
@@ -284,18 +315,24 @@ async function retryTenantProvisioning(req, res) {
 
 async function updateTenant(req, res) {
   const tx = await Tenant.sequelize.transaction();
+  let shouldRunProvisioning = false;
 
   try {
     const { id } = req.params;
     const {
       companyName,
       slug,
+      adminEmail,
+      adminPassword,
+      planId,
       database,
+      dbType,
       dbName,
       dbHost,
       dbPort,
       dbUser,
       dbPassword,
+      currentVersion,
     } = req.body;
 
     const tenant = await Tenant.findOne({
@@ -335,19 +372,115 @@ async function updateTenant(req, res) {
       { where: { id }, transaction: tx },
     );
 
+    if (planId) {
+      const plan = await SubscriptionPlan.findOne({
+        where: { id: planId, status: "active", isDeleted: false },
+        transaction: tx,
+      });
+
+      if (!plan) {
+        await tx.rollback();
+        return fail(res, "Active subscription plan not found", 400);
+      }
+
+      const currentSubscription = await TenantSubscriptionPlan.findOne({
+        where: { tenantId: id, isCurrent: true, isDeleted: false },
+        transaction: tx,
+      });
+
+      if (!currentSubscription) {
+        const startDate = new Date();
+        const trialDays = Number(plan.trial_days || 0);
+
+        await TenantSubscriptionPlan.create(
+          {
+            tenantId: id,
+            planId: plan.id,
+            start_date: startDate,
+            end_date: getSubscriptionEndDate(startDate, plan.billing_cycle),
+            trial_end_at: trialDays > 0 ? addDays(startDate, trialDays) : null,
+            auto_renew: plan.billing_cycle !== "lifetime",
+            amount: plan.price,
+            currency: "INR",
+            status: trialDays > 0 ? "trial" : "active",
+            isCurrent: true,
+          },
+          { transaction: tx },
+        );
+      } else if (currentSubscription.planId !== plan.id) {
+        const startDate = new Date();
+        const trialDays = Number(plan.trial_days || 0);
+
+        await TenantSubscriptionPlan.update(
+          {
+            planId: plan.id,
+            start_date: startDate,
+            end_date: getSubscriptionEndDate(startDate, plan.billing_cycle),
+            trial_end_at: trialDays > 0 ? addDays(startDate, trialDays) : null,
+            auto_renew: plan.billing_cycle !== "lifetime",
+            amount: plan.price,
+            status: trialDays > 0 ? "trial" : "active",
+          },
+          { where: { id: currentSubscription.id }, transaction: tx },
+        );
+      }
+    }
+
+    const adminSeed = await TenantAdminSeed.findOne({
+      where: { tenantId: id, isDeleted: false },
+      transaction: tx,
+    });
+
+    if (
+      adminSeed &&
+      adminSeed.status !== "seeded" &&
+      (adminEmail || adminPassword)
+    ) {
+      const adminSeedPatch = {};
+
+      if (adminEmail && adminEmail !== adminSeed.email) {
+        adminSeedPatch.email = adminEmail;
+      }
+
+      if (adminPassword) {
+        adminSeedPatch.passwordHash = await bcrypt.hash(adminPassword, 10);
+      }
+
+      if (Object.keys(adminSeedPatch).length) {
+        await TenantAdminSeed.update(
+          {
+            ...adminSeedPatch,
+            status: "pending",
+            failureReason: null,
+            failedAt: null,
+            seededAt: null,
+          },
+          { where: { id: adminSeed.id }, transaction: tx },
+        );
+      }
+    }
+
     const databasePayload = database || {
+      dbType,
       dbName,
       dbHost,
       dbPort,
       dbUser,
       dbPassword,
+      currentVersion,
     };
 
     const hasDatabasePayload =
       databasePayload &&
-      ["dbName", "dbHost", "dbPort", "dbUser", "dbPassword"].some(
-        (field) => databasePayload[field] !== undefined,
-      );
+      [
+        "dbType",
+        "dbName",
+        "dbHost",
+        "dbPort",
+        "dbUser",
+        "dbPassword",
+        "currentVersion",
+      ].some((field) => databasePayload[field] !== undefined);
 
     if (hasDatabasePayload) {
       const tenantDatabase = await TenantDatabase.findOne({
@@ -360,61 +493,114 @@ async function updateTenant(req, res) {
         return notFound(res, null, "Tenant database config not found", 404);
       }
 
-      if (tenantDatabase.dbType !== "own") {
+      const requestedDbType = databasePayload.dbType || tenantDatabase.dbType;
+
+      if (requestedDbType && !["managed", "own"].includes(requestedDbType)) {
         await tx.rollback();
-        return fail(res, "Managed database config cannot be edited", 400);
+        return fail(res, "dbType must be either managed or own", 400);
       }
 
-      const nextDbPassword =
-        databasePayload.dbPassword && databasePayload.dbPassword !== "********"
-          ? databasePayload.dbPassword
-          : tenantDatabase.dbPassword;
-
-      if (
-        !databasePayload.dbName ||
-        !databasePayload.dbHost ||
-        !databasePayload.dbUser ||
-        !nextDbPassword
-      ) {
-        await tx.rollback();
-        return fail(
-          res,
-          "dbName, dbHost, dbUser, dbPassword are required for own DB",
-          400,
+      if (requestedDbType === "managed" && tenantDatabase.dbType === "own") {
+        await TenantDatabase.update(
+          {
+            dbName: getManagedDbName(slug, id),
+            dbHost: controlDb.host,
+            dbPort: controlDb.port,
+            dbUser: controlDb.user,
+            dbPassword: controlDb.password,
+            dbType: "managed",
+            provisionSource: "platform",
+            currentVersion: 0,
+            status: "pending",
+            failureReason: null,
+            lastConnectionTestAt: null,
+            lastMigrationAt: null,
+            verifiedAt: null,
+            readyAt: null,
+            failedAt: null,
+          },
+          { where: { id: tenantDatabase.id }, transaction: tx },
         );
+
+        await closeTenantConnection(id);
+
+        await Tenant.update(
+          {
+            provisioningStep: "db_config_updated",
+            failureReason: "Database config updated. Provisioning will run.",
+            failedAt: null,
+          },
+          { where: { id }, transaction: tx },
+        );
+
+        shouldRunProvisioning = true;
+      } else if (requestedDbType === "own" || tenantDatabase.dbType === "own") {
+        const isSwitchingToOwnDatabase =
+          tenantDatabase.dbType !== "own" && requestedDbType === "own";
+        const nextDbPassword =
+          databasePayload.dbPassword &&
+          databasePayload.dbPassword !== "********"
+            ? databasePayload.dbPassword
+            : isSwitchingToOwnDatabase
+              ? null
+              : tenantDatabase.dbPassword;
+
+        if (
+          !databasePayload.dbName ||
+          !databasePayload.dbHost ||
+          !databasePayload.dbUser ||
+          !nextDbPassword
+        ) {
+          await tx.rollback();
+          return fail(
+            res,
+            "dbName, dbHost, dbUser, dbPassword are required for own DB",
+            400,
+          );
+        }
+
+        await TenantDatabase.update(
+          {
+            dbName: databasePayload.dbName,
+            dbHost: databasePayload.dbHost,
+            dbPort: databasePayload.dbPort || tenantDatabase.dbPort || 3306,
+            dbUser: databasePayload.dbUser,
+            dbPassword: nextDbPassword,
+            dbType: "own",
+            provisionSource: "client",
+            currentVersion:
+              databasePayload.currentVersion ?? tenantDatabase.currentVersion,
+            status: "pending",
+            failureReason: null,
+            lastConnectionTestAt: null,
+            lastMigrationAt: null,
+            verifiedAt: null,
+            readyAt: null,
+            failedAt: null,
+          },
+          { where: { id: tenantDatabase.id }, transaction: tx },
+        );
+
+        await closeTenantConnection(id);
+
+        await Tenant.update(
+          {
+            provisioningStep: "db_config_updated",
+            failureReason: "Database config updated. Provisioning will run.",
+            failedAt: null,
+          },
+          { where: { id }, transaction: tx },
+        );
+
+        shouldRunProvisioning = true;
       }
-
-      await TenantDatabase.update(
-        {
-          dbName: databasePayload.dbName,
-          dbHost: databasePayload.dbHost,
-          dbPort: databasePayload.dbPort || tenantDatabase.dbPort || 3306,
-          dbUser: databasePayload.dbUser,
-          dbPassword: nextDbPassword,
-          status: "pending",
-          failureReason: null,
-          lastConnectionTestAt: null,
-          lastMigrationAt: null,
-          verifiedAt: null,
-          readyAt: null,
-          failedAt: null,
-        },
-        { where: { id: tenantDatabase.id }, transaction: tx },
-      );
-
-      await closeTenantConnection(id);
-
-      await Tenant.update(
-        {
-          provisioningStep: "db_config_updated",
-          failureReason: "Database config updated. Retry provisioning.",
-          failedAt: null,
-        },
-        { where: { id }, transaction: tx },
-      );
     }
 
     await tx.commit();
+
+    if (shouldRunProvisioning) {
+      await provisionUpdatedTenantDatabase({ tenantId: id });
+    }
 
     const updatedTenant = await Tenant.findOne({
       where: { id, isDeleted: false },

@@ -10,17 +10,6 @@ function toPlain(value) {
   return value;
 }
 
-function maskTenantDatabase(database) {
-  if (!database) {
-    return database;
-  }
-
-  return {
-    ...database,
-    dbPassword: database.dbPassword ? "********" : null,
-  };
-}
-
 function sanitizeTenantResponse(payload) {
   if (Array.isArray(payload)) {
     return payload.map((item) => sanitizeTenantResponse(item));
@@ -32,10 +21,7 @@ function sanitizeTenantResponse(payload) {
     return tenant;
   }
 
-  return {
-    ...tenant,
-    database: maskTenantDatabase(tenant.database),
-  };
+  return tenant;
 }
 
 function formatTenantListItem(payload) {
@@ -60,6 +46,7 @@ function formatTenantListItem(payload) {
     provisioningStep: tenant.provisioningStep,
     failureReason: tenant.failureReason,
     source: tenant.onboarding_source,
+    totalDomains: tenant.domains.length,
     database: tenant.database
       ? {
           dbName: tenant.database.dbName,
@@ -148,6 +135,24 @@ function formatProvisioningJob(job) {
   };
 }
 
+function formatAdminSeed(adminSeed) {
+  if (!adminSeed) {
+    return null;
+  }
+
+  return {
+    id: adminSeed.id,
+    email: adminSeed.email,
+    role: adminSeed.role,
+    status: adminSeed.status,
+    failureReason: adminSeed.failureReason,
+    seededAt: adminSeed.seededAt,
+    failedAt: adminSeed.failedAt,
+    createdAt: adminSeed.createdAt,
+    updatedAt: adminSeed.updatedAt,
+  };
+}
+
 function formatCurrentSubscription(subscription) {
   if (!subscription) {
     return null;
@@ -160,6 +165,7 @@ function formatCurrentSubscription(subscription) {
     endDate: subscription.end_date,
     trialEndAt: subscription.trial_end_at,
     autoRenew: subscription.auto_renew,
+    isCurrent: subscription.isCurrent,
     amount: subscription.amount,
     currency: subscription.currency,
     plan: subscription.plan
@@ -193,6 +199,19 @@ function formatTenantDetail(payload) {
     tenant.subscriptions?.find((subscription) => subscription.isCurrent) ||
     tenant.subscriptions?.[0];
   const latestProvisioningJob = tenant.provisioningJobs?.[0];
+  const adminSeed = formatAdminSeed(tenant.adminSeed);
+  const adminUser =
+    tenant.adminUser ||
+    (adminSeed
+      ? {
+          id: null,
+          name: null,
+          email: adminSeed.email,
+          role: adminSeed.role,
+          status: adminSeed.status,
+          source: "seed",
+        }
+      : null);
 
   return {
     id: tenant.id,
@@ -229,13 +248,16 @@ function formatTenantDetail(payload) {
     domains: tenant.domains?.map(formatDomain) || [],
     primaryDomain: formatDomain(primaryDomain),
     currentSubscription: formatCurrentSubscription(currentSubscription),
+    subscriptions: tenant.subscriptions?.map(formatCurrentSubscription) || [],
     provisioningJobs: tenant.provisioningJobs?.map(formatProvisioningJob) || [],
     latestProvisioningJob: formatProvisioningJob(latestProvisioningJob),
-    adminUser: tenant.adminUser || null,
+    adminSeed,
+    adminUser,
     adminUserError: tenant.adminUserError || null,
     actions: {
       canRetry: tenant.status === "failed",
       canEditDatabase: tenant.database?.dbType === "own",
+      canEditAdminSeed: Boolean(adminSeed && adminSeed.status !== "seeded"),
       canSuspend: tenant.status === "active",
       canActivate: tenant.status === "suspended",
       canArchive: ["active", "suspended", "failed"].includes(tenant.status),

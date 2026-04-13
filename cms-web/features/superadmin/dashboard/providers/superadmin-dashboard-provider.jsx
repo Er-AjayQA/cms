@@ -4,9 +4,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/lib/utils";
 import { getSuperadminDashboard } from "@/features/superadmin/dashboard/services/superadmin-dashboard-api";
-import { Badge } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SuperadminDashboardContext = createContext();
@@ -95,9 +94,9 @@ export const SuperadminDashboardProvider = ({ children }) => {
             <p className="mt-1 text-xs text-muted-foreground">{meta}</p>
           ) : null}
         </div>
-        <Button variant="outline" size="sm" className="shrink-0">
+        <Badge variant="outline" className="shrink-0">
           {action}
-        </Button>
+        </Badge>
       </div>
     );
   };
