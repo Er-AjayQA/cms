@@ -29,6 +29,10 @@ export const SuperadminTenantForm = () => {
     subscriptionStatusOptions,
     sourceOptions,
     dbTypeOptions,
+    plansOptions,
+    setPlansOptions,
+    isPlansLoading,
+    setIsPlansLoading,
   } = useSuperadminTenant();
 
   const isReadOnly = activeView === "view";
@@ -159,6 +163,38 @@ export const SuperadminTenantForm = () => {
                 </Select>
               </div>
             </div>
+
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 md:col-span-6 space-y-2">
+                <Label>Subscription Plan</Label>
+                <Select
+                  name="planId"
+                  value={formik.values.planId}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("planId", value)
+                  }
+                  disabled={isReadOnly}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    onBlur={() => formik.setFieldTouched("planId", true)}
+                  >
+                    <SelectValue placeholder="Select a subscription status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {plansOptions?.map((option, idx) => {
+                        return (
+                          <SelectItem key={idx} value={option.id}>
+                            {option.name}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -182,7 +218,7 @@ export const SuperadminTenantForm = () => {
                   placeholder="e.g: admin@gmail.com..."
                   value={formik.values.adminEmail}
                   error={formik.errors.adminEmail}
-                  disabled={isReadOnly || activeView === "edit"}
+                  disabled={isReadOnly}
                 />
                 {formik.touched.adminEmail && formik.errors.adminEmail && (
                   <p className="mt-1 text-xs text-red-600 ms-2">
@@ -201,7 +237,7 @@ export const SuperadminTenantForm = () => {
                   placeholder="Enter password..."
                   value={formik.values.adminPassword}
                   error={formik.errors.adminPassword}
-                  disabled={isReadOnly || activeView === "edit"}
+                  disabled={isReadOnly}
                 />
                 {formik.touched.adminPassword &&
                   formik.errors.adminPassword && (
@@ -209,83 +245,6 @@ export const SuperadminTenantForm = () => {
                       {formik.errors.adminPassword}
                     </p>
                   )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Platform Info */}
-        <Card className="overflow-hidden border-border/70 bg-white/70">
-          <CardHeader className="py-2">
-            <CardTitle className="text-md">Platform info</CardTitle>
-            <CardDescription>
-              Track onboarding and subscription state.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="py-5">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-6 space-y-2">
-                <Label>Subscription Status</Label>
-                <Select
-                  name="subscription_status"
-                  value={formik.values.subscription_status}
-                  onValueChange={(value) =>
-                    formik.setFieldValue("subscription_status", value)
-                  }
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    onBlur={() =>
-                      formik.setFieldTouched("subscription_status", true)
-                    }
-                  >
-                    <SelectValue placeholder="Select a subscription status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {subscriptionStatusOptions.map((option, idx) => {
-                        return (
-                          <SelectItem key={idx} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="col-span-12 md:col-span-6 space-y-2">
-                <Label>Onboarding Source</Label>
-                <Select
-                  name="onboarding_source"
-                  value={formik.values.onboarding_source}
-                  onValueChange={(value) =>
-                    formik.setFieldValue("onboarding_source", value)
-                  }
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    onBlur={() =>
-                      formik.setFieldTouched("onboarding_source", true)
-                    }
-                  >
-                    <SelectValue placeholder="Select a onboarding source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {sourceOptions.map((option, idx) => {
-                        return (
-                          <SelectItem key={idx} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
@@ -421,5 +380,3 @@ export const SuperadminTenantForm = () => {
     </section>
   );
 };
-
-

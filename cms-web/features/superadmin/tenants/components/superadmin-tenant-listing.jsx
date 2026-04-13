@@ -98,17 +98,18 @@ export const SuperadminTenantListing = () => {
                     </TableCell>
                     <TableCell className="py-1">{tenant.slug}</TableCell>
                     <TableCell className="py-1 text-center">
-                      {subscriptionStatusOptions?.find(
-                        (item) => item.value === tenant.subscription_status,
-                      )?.label || "-"}
+                      {tenant?.subscription?.planName || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
-                      {sourceOptions?.find(
-                        (item) => item.value === tenant.onboarding_source,
-                      )?.label || "-"}
+                      {tenant?.source === "control_panel"
+                        ? "Control Panel"
+                        : "Website" || "-"}
                     </TableCell>
                     <TableCell className="py-1 text-center">
-                      <StatusToggleBadge status={tenant.status} id={tenant.id} />
+                      <StatusToggleBadge
+                        status={tenant.status}
+                        id={tenant.id}
+                      />
                     </TableCell>
                     <TableCell className="py-1">
                       <div className="flex justify-center">
@@ -151,6 +152,3 @@ export const SuperadminTenantListing = () => {
     </section>
   );
 };
-
-
-

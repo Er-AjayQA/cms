@@ -59,8 +59,10 @@ function formatTenantListItem(payload) {
     status: tenant.status,
     provisioningStep: tenant.provisioningStep,
     failureReason: tenant.failureReason,
+    source: tenant.onboarding_source,
     database: tenant.database
       ? {
+          dbName: tenant.database.dbName,
           dbType: tenant.database.dbType,
           status: tenant.database.status,
           currentVersion: tenant.database.currentVersion,
@@ -227,8 +229,7 @@ function formatTenantDetail(payload) {
     domains: tenant.domains?.map(formatDomain) || [],
     primaryDomain: formatDomain(primaryDomain),
     currentSubscription: formatCurrentSubscription(currentSubscription),
-    provisioningJobs:
-      tenant.provisioningJobs?.map(formatProvisioningJob) || [],
+    provisioningJobs: tenant.provisioningJobs?.map(formatProvisioningJob) || [],
     latestProvisioningJob: formatProvisioningJob(latestProvisioningJob),
     adminUser: tenant.adminUser || null,
     adminUserError: tenant.adminUserError || null,

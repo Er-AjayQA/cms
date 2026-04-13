@@ -140,6 +140,7 @@ async function listTenants(req, res) {
         "status",
         "provisioningStep",
         "failureReason",
+        "onboarding_source",
         "createdAt",
         "updatedAt",
       ],
@@ -147,7 +148,7 @@ async function listTenants(req, res) {
         {
           model: TenantDatabase,
           as: "database",
-          attributes: ["dbType", "status", "currentVersion"],
+          attributes: ["dbName", "dbType", "status", "currentVersion"],
         },
         {
           model: Domain,
@@ -158,12 +159,7 @@ async function listTenants(req, res) {
           model: TenantSubscriptionPlan,
           as: "subscriptions",
           where: { isCurrent: true, isDeleted: false },
-          attributes: [
-            "status",
-            "trial_end_at",
-            "end_date",
-            "isCurrent",
-          ],
+          attributes: ["status", "trial_end_at", "end_date", "isCurrent"],
           required: false,
           include: [
             {
@@ -294,7 +290,6 @@ async function updateTenant(req, res) {
     const {
       companyName,
       slug,
-      onboarding_source,
       database,
       dbName,
       dbHost,
@@ -336,7 +331,6 @@ async function updateTenant(req, res) {
       {
         companyName,
         slug,
-        onboarding_source,
       },
       { where: { id }, transaction: tx },
     );

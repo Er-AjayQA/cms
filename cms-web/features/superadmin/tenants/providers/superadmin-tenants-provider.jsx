@@ -14,6 +14,7 @@ import {
   updateSuperadminTenant,
   updateSuperadminTenantStatus,
 } from "@/features/superadmin/tenants/services/superadmin-tenant-api";
+import { getSuperadminSubscriptionPlans } from "../../subscriptions/services/superadmin-subscription-api";
 
 const SuperadminTenantContext = createContext();
 
@@ -21,16 +22,6 @@ const TENANT_ROLE_OPTIONS = [
   { label: "Owner", value: "owner" },
   { label: "Admin", value: "admin" },
   { label: "Editor", value: "editor" },
-];
-
-const TENANT_SUBSCRIPTION_STATUS_OPTIONS = [
-  { label: "Trial", value: "trial" },
-  { label: "Active", value: "active" },
-  { label: "Cancelled", value: "cancelled" },
-];
-
-const TENANT_ONBOARDING_SOURCE_OPTIONS = [
-  { label: "Control Panel", value: "control_panel" },
 ];
 
 const TENANT_DATABASE_TYPE_OPTIONS = [
@@ -47,10 +38,10 @@ export const SuperadminTenantProvider = ({ children }) => {
   const [isListLoading, setIsListLoading] = useState(false);
   const [records, setRecords] = useState([]);
   const [isRecordLoading, setIsRecordLoading] = useState(false);
+  const [plansOptions, setPlansOptions] = useState([]);
+  const [isPlansLoading, setIsPlansLoading] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const roleOptions = TENANT_ROLE_OPTIONS;
-  const subscriptionStatusOptions = TENANT_SUBSCRIPTION_STATUS_OPTIONS;
-  const sourceOptions = TENANT_ONBOARDING_SOURCE_OPTIONS;
   const dbTypeOptions = TENANT_DATABASE_TYPE_OPTIONS;
 
   /* ===================================
@@ -77,8 +68,7 @@ export const SuperadminTenantProvider = ({ children }) => {
     slug: null,
     adminEmail: "",
     adminPassword: "",
-    subscription_status: "trial",
-    onboarding_source: "control_panel",
+    planId: "",
     role: "owner",
     dbType: "managed",
     dbName: null,
@@ -87,8 +77,6 @@ export const SuperadminTenantProvider = ({ children }) => {
     dbUser: null,
     dbPassword: null,
     currentVersion: null,
-    dbStatus: "",
-    dbProvisionSource: "",
   };
 
   const formik = useFormik({
@@ -139,6 +127,21 @@ export const SuperadminTenantProvider = ({ children }) => {
     }
   };
 
+  const fetchPlans = async () => {
+    setIsPlansLoading(true);
+    try {
+      const res = await getSuperadminSubscriptionPlans(search);
+      setPlansOptions(res?.data?.data || []);
+    } catch (error) {
+      console.error("Error details:", error.response?.data || error);
+      toast.error(
+        getApiErrorMessage(error, "Failed to load subscription plans"),
+      );
+    } finally {
+      setIsPlansLoading(false);
+    }
+  };
+
   const fetchRecordById = async (id) => {
     setIsRecordLoading(true);
     try {
@@ -150,20 +153,23 @@ export const SuperadminTenantProvider = ({ children }) => {
         slug: data?.slug ?? "",
         adminEmail: data?.adminUser?.email ?? "",
         adminPassword: "",
-        subscription_status: data?.subscription_status ?? "trial",
-        onboarding_source: data?.onboarding_source ?? "control_panel",
         role: data?.adminUser?.role ?? "owner",
         dbType: data?.database?.dbType ?? "managed",
-        dbName: data?.database?.dbName ?? "",
-        dbHost: data?.database?.dbHost ?? "",
-        dbPort: data?.database?.dbPort ?? "",
-        dbUser: data?.database?.dbUser ?? "",
-        dbPassword: data?.database?.dbPassword ?? "",
-        currentVersion: data?.database?.currentVersion ?? "",
-        dbStatus: data?.database?.status ?? "",
-        dbProvisionSource: data?.database?.provisionSource ?? "",
+        dbName: data?.database?.dbName ?? null,
+        dbHost: data?.database?.dbHost ?? null,
+        dbPort: data?.database?.dbPort ?? null,
+        dbUser: data?.database?.dbUser ?? null,
+        dbPassword: data?.database?.dbPassword ?? null,
+        currentVersion: data?.database?.currentVersion ?? null,
       });
 
+      if (plansOptions?.length > 0 && data?.currentSubscription?.id) {
+        const getPlan = plansOptions?.find(
+          (plan) => plan?.id === data?.currentSubscription?.id,
+        );
+
+        formik.setFieldValue("planId", getPlan?.id || "");
+      }
       return true;
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
@@ -251,6 +257,10 @@ export const SuperadminTenantProvider = ({ children }) => {
     fetchRecords();
   }, [search]);
 
+  useEffect(() => {
+    if (activeView !== "listing") fetchPlans();
+  }, [activeView]);
+
   const value = {
     StatusToggleBadge,
     formik,
@@ -265,9 +275,11 @@ export const SuperadminTenantProvider = ({ children }) => {
     search,
     setSearch,
     roleOptions,
-    subscriptionStatusOptions,
-    sourceOptions,
     dbTypeOptions,
+    plansOptions,
+    setPlansOptions,
+    isPlansLoading,
+    setIsPlansLoading,
   };
 
   return (
@@ -278,5 +290,3 @@ export const SuperadminTenantProvider = ({ children }) => {
 };
 
 export const useSuperadminTenant = () => useContext(SuperadminTenantContext);
-
-
