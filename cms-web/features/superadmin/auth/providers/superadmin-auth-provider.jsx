@@ -39,6 +39,7 @@ export const SuperadminAuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeRole, setActiveRole] = useState(roles[0]);
+  const [authUser, setAuthUser] = useState(null);
 
   const getRoleById = (roleId) =>
     roles.find((role) => role.id === roleId) || roles[0];
@@ -77,6 +78,7 @@ export const SuperadminAuthProvider = ({ children }) => {
         localStorage.setItem(AUTH_ROLE_KEY, "superadmin");
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         setToken(authToken);
+        setAuthUser(user);
         setIsAuthenticated(true);
         setActiveRole(getRoleById("superadmin"));
 
@@ -95,6 +97,7 @@ export const SuperadminAuthProvider = ({ children }) => {
     localStorage.removeItem(AUTH_ROLE_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     setToken("");
+    setAuthUser(null);
     setIsAuthenticated(false);
     setActiveRole(getRoleById("superadmin"));
     router.replace("/");
@@ -105,7 +108,9 @@ export const SuperadminAuthProvider = ({ children }) => {
     const savedRole = localStorage.getItem(AUTH_ROLE_KEY);
 
     if (savedToken && savedRole === "superadmin") {
+      const savedUser = localStorage.getItem(AUTH_USER_KEY);
       setToken(savedToken);
+      setAuthUser(savedUser ? JSON.parse(savedUser) : null);
       setIsAuthenticated(true);
       setActiveRole(getRoleById(savedRole));
     } else {
@@ -137,6 +142,7 @@ export const SuperadminAuthProvider = ({ children }) => {
 
   const value = {
     activeRole,
+    authUser,
     authLoading,
     formik,
     handleLogout,
@@ -145,6 +151,30 @@ export const SuperadminAuthProvider = ({ children }) => {
     setActiveRole,
     token,
     trustPoints,
+    canReadMenu: (menuCode) => {
+      if (!authUser?.role || authUser.role.code === "super_admin") {
+        return true;
+      }
+
+      return Boolean(
+        authUser.permissions?.some(
+          (permission) =>
+            permission.menuCode === menuCode &&
+            (permission.canRead || permission.canWrite),
+        ),
+      );
+    },
+    canWriteMenu: (menuCode) => {
+      if (!authUser?.role || authUser.role.code === "super_admin") {
+        return true;
+      }
+
+      return Boolean(
+        authUser.permissions?.some(
+          (permission) => permission.menuCode === menuCode && permission.canWrite,
+        ),
+      );
+    },
   };
 
   return (

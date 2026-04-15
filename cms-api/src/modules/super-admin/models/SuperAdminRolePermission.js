@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../../core/superadmin/control-db");
 
-const SuperAdmin = controlSequelize.define(
-  "SuperAdmin",
+const SuperAdminRolePermission = controlSequelize.define(
+  "SuperAdminRolePermission",
   {
     id: {
       type: DataTypes.UUID,
@@ -16,28 +16,22 @@ const SuperAdmin = controlSequelize.define(
       autoIncrement: true,
       unique: true,
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    password_hash: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     roleId: {
       type: DataTypes.UUID,
+      allowNull: false,
     },
-    status: {
-      type: DataTypes.ENUM("active", "inactive"),
-      defaultValue: "active",
+    menuId: {
+      type: DataTypes.UUID,
+      allowNull: false,
     },
-    isDeleted: {
+    canRead: {
       type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    canWrite: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
       defaultValue: false,
     },
     createdAt: {
@@ -50,15 +44,14 @@ const SuperAdmin = controlSequelize.define(
     },
   },
   {
-    modelName: "SuperAdmin",
-    tableName: "super_admins",
+    modelName: "SuperAdminRolePermission",
+    tableName: "superadmin_role_permissions",
     freezeTableName: true,
     timestamps: true,
     createdAt: "createdAt",
     updatedAt: "updatedAt",
+    indexes: [{ unique: true, fields: ["roleId", "menuId"] }],
   },
 );
 
-module.exports = SuperAdmin;
-
-
+module.exports = SuperAdminRolePermission;

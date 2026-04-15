@@ -37,10 +37,10 @@ export function SuperadminShell({
   accent = "amber",
   showHero = true,
 }) {
-  const { handleLogout } = useSuperadminAuth();
+  const { authUser, canReadMenu, handleLogout } = useSuperadminAuth();
   const pathname = usePathname();
   const config = superadminNavigation;
-  const nav = config.mainLinks;
+  const nav = config.mainLinks.filter((item) => canReadMenu(item.code));
   const homeHref = config.homeHref;
 
   return (
@@ -176,7 +176,7 @@ export function SuperadminShell({
                   <Bell className="size-4" />
                 </button>
                 <Badge className="rounded-md px-3 py-2 text-xs uppercase">
-                  {config.badge}
+                  {authUser?.role?.name || config.badge}
                 </Badge>
               </div>
             </div>

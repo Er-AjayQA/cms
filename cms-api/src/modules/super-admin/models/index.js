@@ -2,6 +2,9 @@ const Tenant = require("./Tenant");
 const TenantDatabase = require("./TenantDatabase");
 const Domain = require("./Domain");
 const SuperAdmin = require("./SuperAdmin");
+const SuperAdminMenu = require("./SuperAdminMenu");
+const SuperAdminRole = require("./SuperAdminRole");
+const SuperAdminRolePermission = require("./SuperAdminRolePermission");
 const SubscriptionPlan = require("./SubscriptionPlans");
 const TenantSubscriptionPlan = require("./TenantSubscriptionPlans");
 const ProvisioningJob = require("./ProvisioningJob");
@@ -56,11 +59,44 @@ ProvisioningJob.belongsTo(SuperAdmin, {
   as: "creator",
 });
 
+SuperAdminRole.hasMany(SuperAdmin, { foreignKey: "roleId", as: "users" });
+SuperAdmin.belongsTo(SuperAdminRole, { foreignKey: "roleId", as: "role" });
+
+SuperAdminRole.hasMany(SuperAdminRolePermission, {
+  foreignKey: "roleId",
+  as: "permissions",
+});
+SuperAdminRolePermission.belongsTo(SuperAdminRole, {
+  foreignKey: "roleId",
+  as: "role",
+});
+
+SuperAdminMenu.hasMany(SuperAdminRolePermission, {
+  foreignKey: "menuId",
+  as: "permissions",
+});
+SuperAdminRolePermission.belongsTo(SuperAdminMenu, {
+  foreignKey: "menuId",
+  as: "menu",
+});
+
+SuperAdminMenu.hasMany(SuperAdminMenu, {
+  foreignKey: "parentId",
+  as: "children",
+});
+SuperAdminMenu.belongsTo(SuperAdminMenu, {
+  foreignKey: "parentId",
+  as: "parent",
+});
+
 module.exports = {
   Tenant,
   TenantDatabase,
   Domain,
   SuperAdmin,
+  SuperAdminMenu,
+  SuperAdminRole,
+  SuperAdminRolePermission,
   SubscriptionPlan,
   TenantSubscriptionPlan,
   ProvisioningJob,

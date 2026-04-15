@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { controlSequelize } = require("../../../core/superadmin/control-db");
 
-const SuperAdmin = controlSequelize.define(
-  "SuperAdmin",
+const SuperAdminRole = controlSequelize.define(
+  "SuperAdminRole",
   {
     id: {
       type: DataTypes.UUID,
@@ -19,22 +19,25 @@ const SuperAdmin = controlSequelize.define(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
-    email: {
+    code: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
-    password_hash: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    roleId: {
-      type: DataTypes.UUID,
+    description: {
+      type: DataTypes.TEXT,
     },
     status: {
       type: DataTypes.ENUM("active", "inactive"),
+      allowNull: false,
       defaultValue: "active",
+    },
+    isSystem: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
     isDeleted: {
       type: DataTypes.BOOLEAN,
@@ -50,8 +53,8 @@ const SuperAdmin = controlSequelize.define(
     },
   },
   {
-    modelName: "SuperAdmin",
-    tableName: "super_admins",
+    modelName: "SuperAdminRole",
+    tableName: "superadmin_roles",
     freezeTableName: true,
     timestamps: true,
     createdAt: "createdAt",
@@ -59,6 +62,4 @@ const SuperAdmin = controlSequelize.define(
   },
 );
 
-module.exports = SuperAdmin;
-
-
+module.exports = SuperAdminRole;

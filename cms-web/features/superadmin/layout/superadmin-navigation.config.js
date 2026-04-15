@@ -12,13 +12,20 @@ export const superadminNavigation = {
   badge: "Platform",
   homeHref: "/superadmin",
   mainLinks: [
-    { title: "Dashboard", href: "/superadmin", icon: LayoutDashboard },
-    { title: "Tenants", href: "/superadmin/tenant", icon: Building2 },
-    { title: "Domains", href: "/superadmin/domains", icon: Globe2 },
+    { title: "Dashboard", href: "/superadmin", icon: LayoutDashboard, code: "dashboard" },
+    { title: "Tenants", href: "/superadmin/tenant", icon: Building2, code: "tenants" },
+    { title: "Domains", href: "/superadmin/domains", icon: Globe2, code: "domains" },
     {
       title: "Subscription Manager",
       href: "/superadmin/subscription-plans",
       icon: Globe2,
+      code: "subscription_plans",
+    },
+    {
+      title: "Access Control",
+      href: "/superadmin/access-control",
+      icon: ShieldCheck,
+      code: "access_control",
     },
   ],
   supportLinks: [
