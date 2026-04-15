@@ -15,7 +15,7 @@ async function seedTenant({
   role,
 }) {
   const sequelize = await getTenantSequelizeByTenantId(tenantId);
-  const { User, Site, Page, Menu } = getTenantModels(sequelize);
+  const { User, Site } = getTenantModels(sequelize);
 
   const transaction = await sequelize.transaction();
 
@@ -44,44 +44,6 @@ async function seedTenant({
       },
       transaction,
     });
-
-    const existingPages = await Page.count({
-      where: { siteId: site.id },
-      transaction,
-    });
-    if (!existingPages) {
-      await Page.bulkCreate(
-        [
-          {
-            siteId: site.id,
-            title: "Home",
-            slug: "/",
-            status: "draft",
-          },
-          {
-            siteId: site.id,
-            title: "About",
-            slug: "/about",
-            status: "draft",
-          },
-        ],
-        { transaction },
-      );
-    }
-
-    const existingMenus = await Menu.count({
-      where: { siteId: site.id },
-      transaction,
-    });
-    if (!existingMenus) {
-      await Menu.bulkCreate(
-        [
-          { siteId: site.id, name: "Header Menu", location: "header" },
-          { siteId: site.id, name: "Footer Menu", location: "footer" },
-        ],
-        { transaction },
-      );
-    }
 
     await transaction.commit();
 

@@ -225,14 +225,15 @@ function formatTenantDetail(payload) {
     activatedAt: tenant.activatedAt,
     suspendedAt: tenant.suspendedAt,
     archivedAt: tenant.archivedAt,
-    database: tenant.database
+        database: tenant.database
       ? {
           id: tenant.database.id,
           dbName: tenant.database.dbName,
           dbHost: tenant.database.dbHost,
           dbPort: tenant.database.dbPort,
           dbUser: tenant.database.dbUser,
-          dbPassword: tenant.database.dbPassword,
+          dbPassword: tenant.database.dbPassword ? "********" : null,
+          hasDbPassword: Boolean(tenant.database.dbPassword),
           dbType: tenant.database.dbType,
           provisionSource: tenant.database.provisionSource,
           currentVersion: tenant.database.currentVersion,
@@ -254,6 +255,7 @@ function formatTenantDetail(payload) {
     adminSeed,
     adminUser,
     adminUserError: tenant.adminUserError || null,
+    migrationStatus: tenant.migrationStatus || null,
     actions: {
       canRetry: tenant.status === "failed",
       canEditDatabase: tenant.database?.dbType === "own",

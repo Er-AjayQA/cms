@@ -30,21 +30,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Eye, EyeOff } from "lucide-react";
 
 export const SuperadminTenantForm = () => {
   const {
     formik,
     activeView,
     closeForm,
-    subscriptionStatusOptions,
-    sourceOptions,
     dbTypeOptions,
     plansOptions,
     loadedDbType,
     selectedRecord,
-    setPlansOptions,
-    isPlansLoading,
-    setIsPlansLoading,
+    revealTenantDatabasePassword,
+    passwordLoadingId,
   } = useSuperadminTenant();
 
   const isReadOnly = activeView === "view";
@@ -53,8 +51,8 @@ export const SuperadminTenantForm = () => {
     isEditing && selectedRecord?.actions?.canEditAdminSeed;
   const isAdminLocked = isReadOnly || (isEditing && !canEditAdminSeed);
   const [pendingDbType, setPendingDbType] = useState(null);
-  const shouldShowDatabaseInfo =
-    activeView === "view" || formik.values.dbType === "own";
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showDbPassword, setShowDbPassword] = useState(false);
   const formTitle = {
     view: "View Tenant",
     edit: "Edit Tenant",
@@ -98,6 +96,22 @@ export const SuperadminTenantForm = () => {
       applyDbTypeChange(pendingDbType);
       setPendingDbType(null);
     }
+  };
+
+  const handleDbPasswordToggle = async () => {
+    if (
+      !showDbPassword &&
+      selectedRecord?.id &&
+      formik.values.dbPassword === "********"
+    ) {
+      const revealed = await revealTenantDatabasePassword(selectedRecord.id);
+
+      if (!revealed) {
+        return;
+      }
+    }
+
+    setShowDbPassword((current) => !current);
   };
 
   return (
@@ -246,22 +260,38 @@ export const SuperadminTenantForm = () => {
 
               <div className="col-span-12 md:col-span-6 space-y-2">
                 <Label>Password</Label>
-                <Input
-                  type="text"
-                  name="adminPassword"
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  placeholder={
-                    isEditing && canEditAdminSeed
-                      ? "Leave blank to keep saved password"
-                      : isEditing
-                        ? "Admin password cannot be changed"
-                      : "Enter password..."
-                  }
-                  value={formik.values.adminPassword}
-                  error={formik.errors.adminPassword}
-                  disabled={isAdminLocked}
-                />
+                <div className="relative">
+                  <Input
+                    type={showAdminPassword ? "text" : "password"}
+                    name="adminPassword"
+                    onBlur={formik.handleBlur}
+                    onChange={formik.handleChange}
+                    placeholder={
+                      isEditing && canEditAdminSeed
+                        ? "Leave blank to keep saved password"
+                        : isEditing
+                          ? "Admin password cannot be changed"
+                          : "Enter password..."
+                    }
+                    value={formik.values.adminPassword}
+                    error={formik.errors.adminPassword}
+                    disabled={isAdminLocked}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="absolute right-1 top-1/2 size-8 -translate-y-1/2"
+                    onClick={() => setShowAdminPassword((current) => !current)}
+                  >
+                    {showAdminPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </Button>
+                </div>
                 {formik.touched.adminPassword &&
                   formik.errors.adminPassword && (
                     <p className="mt-1 text-xs text-red-600 ms-2">
@@ -375,15 +405,33 @@ export const SuperadminTenantForm = () => {
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-12 md:col-span-6 space-y-2">
                   <Label>DB Password</Label>
-                  <Input
-                    name="dbPassword"
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    placeholder="Enter db password..."
-                    value={formik.values.dbPassword}
-                    error={formik.errors.dbPassword}
-                    disabled={isReadOnly}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showDbPassword ? "text" : "password"}
+                      name="dbPassword"
+                      onBlur={formik.handleBlur}
+                      onChange={formik.handleChange}
+                      placeholder="Enter db password..."
+                      value={formik.values.dbPassword}
+                      error={formik.errors.dbPassword}
+                      disabled={isReadOnly}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute right-1 top-1/2 size-8 -translate-y-1/2"
+                      disabled={passwordLoadingId === selectedRecord?.id}
+                      onClick={handleDbPasswordToggle}
+                    >
+                      {showDbPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="col-span-12 md:col-span-6 space-y-2">

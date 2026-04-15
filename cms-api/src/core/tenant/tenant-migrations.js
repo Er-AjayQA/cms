@@ -1,13 +1,27 @@
 const path = require("path");
-const { runMigrations } = require("../shared/migration-runner");
+const {
+  getMigrationStatus,
+  runMigrations,
+} = require("../shared/migration-runner");
+
+const tenantMigrationsDir = path.join(__dirname, "../../migrations/tenant");
+const tenantMetaTableName = "TenantMigrationsMeta";
 
 async function runTenantMigrations(sequelize) {
   return runMigrations({
     sequelize,
-    migrationsDir: path.join(__dirname, "../../migrations/tenant"),
-    metaTableName: "TenantMigrationsMeta",
+    migrationsDir: tenantMigrationsDir,
+    metaTableName: tenantMetaTableName,
   });
 }
 
-module.exports = { runTenantMigrations };
+async function getTenantMigrationStatus(sequelize) {
+  return getMigrationStatus({
+    sequelize,
+    migrationsDir: tenantMigrationsDir,
+    metaTableName: tenantMetaTableName,
+  });
+}
+
+module.exports = { getTenantMigrationStatus, runTenantMigrations };
 

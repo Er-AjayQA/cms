@@ -9,8 +9,10 @@ import { getApiErrorMessage } from "@/lib/utils";
 import {
   createSuperadminTenant,
   deleteSuperadminTenant,
+  getSuperadminTenantDatabasePassword,
   getSuperadminTenants,
   getSuperadminTenantById,
+  runSuperadminTenantMigrations,
   retrySuperadminTenantProvisioning,
   updateSuperadminTenant,
   updateSuperadminTenantStatus,
@@ -61,6 +63,17 @@ export const SuperadminTenantProvider = ({ children }) => {
         HANDLE STATE
      =================================== */
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalRecords: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
   const [activeView, setActiveView] = useState("listing");
   const [isListLoading, setIsListLoading] = useState(false);
   const [records, setRecords] = useState([]);
@@ -70,6 +83,10 @@ export const SuperadminTenantProvider = ({ children }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [loadedDbType, setLoadedDbType] = useState(null);
+  const [migrationLoadingId, setMigrationLoadingId] = useState(null);
+  const [pendingMigrationTenantId, setPendingMigrationTenantId] =
+    useState(null);
+  const [passwordLoadingId, setPasswordLoadingId] = useState(null);
   const dbTypeOptions = TENANT_DATABASE_TYPE_OPTIONS;
 
   /* ===================================
@@ -128,7 +145,7 @@ export const SuperadminTenantProvider = ({ children }) => {
         }
 
         closeForm();
-        fetchRecords();
+        fetchRecords({ page: currentPage });
         toast.success(res?.data?.message || successMessage);
         setActiveView("listing");
       } catch (error) {
@@ -141,11 +158,38 @@ export const SuperadminTenantProvider = ({ children }) => {
   /* ===================================
         API HANDLING
      =================================== */
-  const fetchRecords = async () => {
+  const fetchRecords = async ({
+    searchValue = debouncedSearch,
+    page = currentPage,
+    limit = pageSize,
+  } = {}) => {
     setIsListLoading(true);
     try {
-      const res = await getSuperadminTenants(search);
-      setRecords(res?.data?.data || []);
+      const res = await getSuperadminTenants({
+        search: searchValue,
+        page,
+        limit,
+      });
+      const data = res?.data?.data;
+      const nextPagination =
+        data?.pagination || {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        };
+
+      setRecords(data?.records || []);
+      setPagination(nextPagination);
+
+      if (
+        page > nextPagination.totalPages &&
+        nextPagination.totalRecords > 0
+      ) {
+        setCurrentPage(nextPagination.totalPages);
+      }
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
       toast.error(getApiErrorMessage(error, "Failed to load tenants"));
@@ -235,7 +279,7 @@ export const SuperadminTenantProvider = ({ children }) => {
     try {
       const res = await deleteSuperadminTenant(id);
       toast.success(res?.data?.message);
-      fetchRecords();
+      fetchRecords({ page: currentPage });
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
       toast.error(getApiErrorMessage(error, "Failed to delete tenant"));
@@ -248,7 +292,7 @@ export const SuperadminTenantProvider = ({ children }) => {
       const res = await retrySuperadminTenantProvisioning(id);
       toast.success(res?.data?.message || "Tenant provisioning retried");
       await fetchRecordById(id);
-      fetchRecords();
+      fetchRecords({ page: currentPage });
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
       toast.error(
@@ -259,11 +303,116 @@ export const SuperadminTenantProvider = ({ children }) => {
     }
   };
 
+  const revealTenantDatabasePassword = async (id) => {
+    setPasswordLoadingId(id);
+
+    try {
+      const res = await getSuperadminTenantDatabasePassword(id);
+      const dbPassword = res?.data?.data?.dbPassword || "";
+
+      if (selectedId === id) {
+        setSelectedRecord((current) =>
+          current
+            ? {
+                ...current,
+                database: {
+                  ...(current.database || {}),
+                  dbPassword,
+                },
+              }
+            : current,
+        );
+        formik.setFieldValue("dbPassword", dbPassword);
+      }
+
+      return dbPassword;
+    } catch (error) {
+      console.error("Error details:", error.response?.data || error);
+      toast.error(getApiErrorMessage(error, "Failed to load DB password"));
+      return null;
+    } finally {
+      setPasswordLoadingId(null);
+    }
+  };
+
+  const getTenantFromState = (id) =>
+    records.find((record) => record.id === id) ||
+    (selectedRecord?.id === id ? selectedRecord : null);
+
+  const runTenantMigration = (id) => {
+    const tenant =
+      records.find((record) => record.id === id) ||
+      (selectedRecord?.id === id ? selectedRecord : null);
+    const migrationStatus = tenant?.migrationStatus;
+    const isBusy = ["creating", "verifying", "migrating", "seeding"].includes(
+      tenant?.database?.status,
+    );
+
+    if (isBusy) {
+      toast.info("Tenant database is already busy");
+      return;
+    }
+
+    if (migrationStatus?.state === "drift") {
+      toast.error("Migration history has drift. Resolve it before running.");
+      return;
+    }
+
+    if (migrationStatus?.state === "unknown") {
+      toast.error("Migration status is unknown. Refresh or fix DB connection.");
+      return;
+    }
+
+    if (migrationStatus?.state === "up_to_date") {
+      toast.info("Tenant database is already up to date");
+      return;
+    }
+
+    setPendingMigrationTenantId(id);
+  };
+
+  const confirmTenantMigration = async () => {
+    const id = pendingMigrationTenantId;
+    setPendingMigrationTenantId(null);
+
+    if (!id) {
+      return;
+    }
+
+    setMigrationLoadingId(id);
+
+    try {
+      const res = await runSuperadminTenantMigrations(id);
+      const executed = res?.data?.data?.executed || [];
+
+      toast.success(
+        executed.length
+          ? res?.data?.message || "Tenant migrations completed"
+          : "Tenant database is already up to date",
+      );
+
+      await fetchRecords({ page: currentPage });
+
+      if (selectedId === id) {
+        await fetchRecordById(id);
+      }
+    } catch (error) {
+      console.error("Error details:", error.response?.data || error);
+      toast.error(getApiErrorMessage(error, "Failed to run tenant migrations"));
+    } finally {
+      setMigrationLoadingId(null);
+    }
+  };
+
+  const cancelTenantMigration = () => {
+    setPendingMigrationTenantId(null);
+  };
+
   const toggleRecordStatus = async (id, status) => {
     try {
       const res = await updateSuperadminTenantStatus(id, { status });
       toast.success(res?.data?.message);
-      fetchRecords();
+      fetchRecords({ page: currentPage });
     } catch (error) {
       console.error("Error details:", error.response?.data || error);
       toast.error(getApiErrorMessage(error, "Failed to update tenant status"));
@@ -298,8 +447,27 @@ export const SuperadminTenantProvider = ({ children }) => {
         INITIAL RENDERS
      =================================== */
   useEffect(() => {
-    fetchRecords();
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 350);
+
+    return () => clearTimeout(timeout);
   }, [search]);
+
+  useEffect(() => {
+    fetchRecords({ searchValue: debouncedSearch, page: currentPage });
+  }, [debouncedSearch, currentPage, pageSize]);
+
+  const goToPage = (page) => {
+    const nextPage = Math.min(Math.max(page, 1), pagination.totalPages || 1);
+    setCurrentPage(nextPage);
+  };
+
+  const changePageSize = (limit) => {
+    setPageSize(limit);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     if (activeView !== "listing") fetchPlans();
@@ -318,8 +486,22 @@ export const SuperadminTenantProvider = ({ children }) => {
     records,
     deleteRecord,
     retryRecord,
+    revealTenantDatabasePassword,
+    runTenantMigration,
+    confirmTenantMigration,
+    cancelTenantMigration,
+    pendingMigrationTenant: pendingMigrationTenantId
+      ? getTenantFromState(pendingMigrationTenantId)
+      : null,
+    migrationLoadingId,
+    passwordLoadingId,
     search,
     setSearch,
+    currentPage,
+    pageSize,
+    pagination,
+    goToPage,
+    changePageSize,
     dbTypeOptions,
     plansOptions,
     loadedDbType,

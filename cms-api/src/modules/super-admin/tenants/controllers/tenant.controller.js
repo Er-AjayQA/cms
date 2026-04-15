@@ -15,6 +15,7 @@ const {
   retryProvisionTenant,
   provisionUpdatedTenantDatabase,
 } = require("../../../tenant/services/provision-tenant");
+const { initTenantSchema } = require("../../../tenant/services/init-tenant-schema");
 const {
   getTenantSequelizeByTenantId,
   closeTenantConnection,
@@ -22,6 +23,9 @@ const {
 const {
   getTenantModels,
 } = require("../../../../core/tenant/tenant-model-registry");
+const {
+  getTenantMigrationStatus,
+} = require("../../../../core/tenant/tenant-migrations");
 const { ok, fail, notFound } = require("../../../../utils/response");
 const {
   formatTenantDetail,
@@ -72,6 +76,65 @@ function getSubscriptionEndDate(startDate, billingCycle) {
 function getManagedDbName(slug, tenantId) {
   const suffix = tenantId.replace(/-/g, "").slice(0, 8);
   return `cms_tenant_${slug.slice(0, 32)}_${suffix}`;
+}
+
+const BUSY_DATABASE_STATUSES = ["creating", "verifying", "migrating", "seeding"];
+const MIGRATION_STATUS_CONCURRENCY = 5;
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, worker));
+
+  return results;
+}
+
+async function getTenantMigrationStatusSummary(tenantId) {
+  try {
+    const sequelize = await getTenantSequelizeByTenantId(tenantId);
+    await sequelize.authenticate();
+    const status = await getTenantMigrationStatus(sequelize);
+
+    return {
+      state: status.hasDrift
+        ? "drift"
+        : status.needsMigration
+          ? "pending"
+          : "up_to_date",
+      needsMigration: status.needsMigration,
+      hasDrift: status.hasDrift,
+      totalCount: status.totalCount,
+      appliedCount: status.appliedCount,
+      pendingCount: status.pendingCount,
+      pending: status.pending,
+      appliedButMissingCount: status.appliedButMissingCount,
+      appliedButMissing: status.appliedButMissing,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      state: "unknown",
+      needsMigration: null,
+      hasDrift: null,
+      totalCount: 0,
+      appliedCount: 0,
+      pendingCount: 0,
+      pending: [],
+      appliedButMissingCount: 0,
+      appliedButMissing: [],
+      error: "Unable to check migration status",
+    };
+  }
 }
 
 async function createTenant(req, res) {
@@ -152,6 +215,12 @@ async function createTenant(req, res) {
 async function listTenants(req, res) {
   try {
     const { search = "" } = req.query;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(Number.parseInt(req.query.limit, 10) || 10, 1),
+      100,
+    );
+    const offset = (page - 1) * limit;
     const where = { isDeleted: false };
 
     if (search) {
@@ -162,8 +231,9 @@ async function listTenants(req, res) {
       ];
     }
 
-    const tenants = await Tenant.findAll({
+    const { count, rows: tenants } = await Tenant.findAndCountAll({
       where,
+      distinct: true,
       attributes: [
         "id",
         "companyName",
@@ -221,9 +291,33 @@ async function listTenants(req, res) {
         },
       ],
       order: [["id", "DESC"]],
+      limit,
+      offset,
     });
 
-    return ok(res, tenants.map(formatTenantListItem));
+    const tenantList = await mapWithConcurrency(
+      tenants,
+      MIGRATION_STATUS_CONCURRENCY,
+      async (tenant) => {
+        const item = formatTenantListItem(tenant);
+        item.migrationStatus = await getTenantMigrationStatusSummary(tenant.id);
+        return item;
+      },
+    );
+
+    const totalPages = Math.max(Math.ceil(count / limit), 1);
+
+    return ok(res, {
+      records: tenantList,
+      pagination: {
+        page,
+        limit,
+        totalRecords: count,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    });
   } catch (error) {
     return fail(res, error.message);
   }
@@ -287,9 +381,41 @@ async function getByIdTenant(req, res) {
       tenantData.adminUserError = error.message;
     }
 
+    tenantData.migrationStatus = await getTenantMigrationStatusSummary(id);
+
     return ok(res, formatTenantDetail(tenantData));
   } catch (error) {
     return fail(res, error.message);
+  }
+}
+
+async function getTenantDatabasePassword(req, res) {
+  try {
+    const { id } = req.params;
+
+    const tenant = await Tenant.findOne({ where: { id, isDeleted: false } });
+
+    if (!tenant) {
+      return notFound(res, null, "Tenant not found", 404);
+    }
+
+    const tenantDatabase = await TenantDatabase.findOne({
+      where: { tenantId: id, isDeleted: false },
+      attributes: ["dbPassword"],
+    });
+
+    if (!tenantDatabase) {
+      return notFound(res, null, "Tenant database config not found", 404);
+    }
+
+    return ok(
+      res,
+      { dbPassword: tenantDatabase.dbPassword || null },
+      "Tenant database password loaded",
+      200,
+    );
+  } catch (error) {
+    return fail(res, error.message, 500);
   }
 }
 
@@ -308,6 +434,219 @@ async function retryTenantProvisioning(req, res) {
       200,
     );
   } catch (error) {
+    const status = error?.statusCode || 500;
+    return fail(res, getTenantErrorMessage(error), status);
+  }
+}
+
+async function runTenantMigrations(req, res) {
+  let provisioningJob = null;
+  let migrationLocked = false;
+
+  try {
+    const { id } = req.params;
+
+    const tenant = await Tenant.findOne({ where: { id, isDeleted: false } });
+
+    if (!tenant) {
+      return notFound(res, null, "Tenant not found", 404);
+    }
+
+    const tenantDatabase = await TenantDatabase.findOne({
+      where: { tenantId: id, isDeleted: false },
+    });
+
+    if (!tenantDatabase) {
+      return notFound(res, null, "Tenant database config not found", 404);
+    }
+
+    if (BUSY_DATABASE_STATUSES.includes(tenantDatabase.status)) {
+      return fail(res, "Tenant database is already busy", 409);
+    }
+
+    const runningMigrationJob = await ProvisioningJob.findOne({
+      where: {
+        tenantId: tenant.id,
+        type: "tenant_migration",
+        status: { [Op.in]: ["queued", "running"] },
+        isDeleted: false,
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (runningMigrationJob) {
+      return fail(res, "Tenant migration is already running", 409);
+    }
+
+    const migrationStatus = await getTenantMigrationStatusSummary(tenant.id);
+
+    if (migrationStatus.state === "unknown") {
+      return fail(res, migrationStatus.error, 400);
+    }
+
+    if (migrationStatus.state === "drift") {
+      return fail(
+        res,
+        "Tenant migration history has drift. Resolve missing migration files before running migrations.",
+        409,
+      );
+    }
+
+    if (!migrationStatus.needsMigration) {
+      return ok(
+        res,
+        {
+          executed: [],
+          currentVersion: migrationStatus.appliedCount,
+        },
+        "Tenant database is already up to date",
+        200,
+      );
+    }
+
+    const [lockedCount] = await TenantDatabase.update(
+      {
+        status: "migrating",
+        failureReason: null,
+        failedAt: null,
+      },
+      {
+        where: {
+          id: tenantDatabase.id,
+          status: { [Op.notIn]: BUSY_DATABASE_STATUSES },
+        },
+      },
+    );
+
+    if (lockedCount !== 1) {
+      return fail(res, "Tenant database is already busy", 409);
+    }
+
+    migrationLocked = true;
+
+    provisioningJob = await ProvisioningJob.create({
+      tenantId: tenant.id,
+      tenantDatabaseId: tenantDatabase.id,
+      createdBy: req.user?.id,
+      type: "tenant_migration",
+      status: "queued",
+      step: "manual_migration_queued",
+      attempts: 0,
+      maxAttempts: 1,
+      errorMessage: null,
+      metadata: {
+        source: "super_admin_manual_run",
+        pendingBeforeRun: migrationStatus.pending,
+      },
+    });
+
+    const startedAt = new Date();
+
+    await Promise.all([
+      Tenant.update(
+        {
+          provisioningStep: "manual_migration_started",
+          failureReason: null,
+          failedAt: null,
+        },
+        { where: { id: tenant.id } },
+      ),
+      ProvisioningJob.update(
+        {
+          status: "running",
+          step: "db_migrating",
+          attempts: 1,
+          startedAt,
+        },
+        { where: { id: provisioningJob.id } },
+      ),
+    ]);
+
+    const migrationResult = await initTenantSchema(tenant.id);
+    const completedAt = new Date();
+
+    await Promise.all([
+      Tenant.update(
+        {
+          provisioningStep: "manual_migration_completed",
+          failureReason: null,
+          failedAt: null,
+        },
+        { where: { id: tenant.id } },
+      ),
+      TenantDatabase.update(
+        {
+          status: "ready",
+          currentVersion: migrationResult.currentVersion,
+          failureReason: null,
+          lastMigrationAt: completedAt,
+          readyAt: completedAt,
+          failedAt: null,
+        },
+        { where: { id: tenantDatabase.id } },
+      ),
+      ProvisioningJob.update(
+        {
+          status: "succeeded",
+          step: "completed",
+          errorMessage: null,
+          finishedAt: completedAt,
+          metadata: {
+            source: "super_admin_manual_run",
+            pendingBeforeRun: migrationStatus.pending,
+            executed: migrationResult.executed,
+            currentVersion: migrationResult.currentVersion,
+          },
+        },
+        { where: { id: provisioningJob.id } },
+      ),
+    ]);
+
+    return ok(
+      res,
+      {
+        executed: migrationResult.executed,
+        currentVersion: migrationResult.currentVersion,
+      },
+      migrationResult.executed.length
+        ? "Tenant migrations completed successfully"
+        : "Tenant database is already up to date",
+      200,
+    );
+  } catch (error) {
+    const failedAt = new Date();
+    const { id } = req.params;
+
+    await Promise.all([
+      Tenant.update(
+        {
+          provisioningStep: "manual_migration_failed",
+          failureReason: error.message,
+          failedAt,
+        },
+        { where: { id } },
+      ).catch(() => {}),
+      TenantDatabase.update(
+        {
+          ...(migrationLocked ? { status: "failed" } : {}),
+          failureReason: error.message,
+          failedAt,
+        },
+        { where: { tenantId: id } },
+      ).catch(() => {}),
+      provisioningJob
+        ? ProvisioningJob.update(
+            {
+              status: "failed",
+              step: "failed",
+              errorMessage: error.message,
+              finishedAt: failedAt,
+            },
+            { where: { id: provisioningJob.id } },
+          ).catch(() => {})
+        : Promise.resolve(),
+    ]);
+
     const status = error?.statusCode || 500;
     return fail(res, getTenantErrorMessage(error), status);
   }
@@ -685,7 +1024,9 @@ module.exports = {
   createTenant,
   listTenants,
   getByIdTenant,
+  getTenantDatabasePassword,
   retryTenantProvisioning,
+  runTenantMigrations,
   updateTenant,
   updateTenantStatus,
   deleteTenant,

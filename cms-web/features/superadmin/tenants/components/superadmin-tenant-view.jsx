@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useSuperadminTenant } from "@/features/superadmin/tenants/providers/superadmin-tenants-provider";
+import { SuperadminTenantMigrationDialog } from "@/features/superadmin/tenants/components/superadmin-tenant-migration-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DatabaseZap, Eye, EyeOff } from "lucide-react";
 
 const valueOrDash = (value) => value ?? "-";
 
@@ -37,6 +40,86 @@ const StatusBadge = ({ value }) => (
   </Badge>
 );
 
+const MigrationStatusBadge = ({ status }) => {
+  const state = status?.state;
+
+  if (state === "pending") {
+    return (
+      <Badge className="border border-amber-600/20 bg-amber-500/15 text-amber-700">
+        Need migration
+      </Badge>
+    );
+  }
+
+  if (state === "drift") {
+    return (
+      <Badge className="border border-red-600/20 bg-red-500/15 text-red-700">
+        Drift
+      </Badge>
+    );
+  }
+
+  if (state === "up_to_date") {
+    return (
+      <Badge className="border border-emerald-600/20 bg-emerald-500/15 text-emerald-700">
+        Up to date
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge className="border border-slate-600/20 bg-slate-500/15 text-slate-700">
+      Unknown
+    </Badge>
+  );
+};
+
+const SecretDetailItem = ({ label, value, isLoading, onReveal }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const hasValue = Boolean(value);
+  const isMaskedValue = value === "********";
+
+  const handleToggle = async () => {
+    if (!isVisible && isMaskedValue && onReveal) {
+      const revealed = await onReveal();
+      if (!revealed) {
+        return;
+      }
+    }
+
+    setIsVisible((current) => !current);
+  };
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium uppercase text-muted-foreground">
+        {label}
+      </p>
+      <div className="flex items-center gap-2">
+        <p className="min-w-0 break-words text-sm font-semibold text-foreground">
+          {hasValue ? (isVisible ? value : "********") : "-"}
+        </p>
+        {hasValue ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-7 shrink-0"
+            disabled={isLoading}
+            onClick={handleToggle}
+          >
+            {isVisible ? (
+              <EyeOff className="size-4" />
+            ) : (
+              <Eye className="size-4" />
+            )}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const ScrollTable = ({ headers, children }) => (
   <div>
     <Table className="table-fixed">
@@ -57,8 +140,19 @@ const ScrollTable = ({ headers, children }) => (
 );
 
 export const SuperadminTenantView = () => {
-  const { selectedRecord: tenant, closeForm, openRecord, retryRecord } =
-    useSuperadminTenant();
+  const {
+    selectedRecord: tenant,
+    closeForm,
+    openRecord,
+    retryRecord,
+    revealTenantDatabasePassword,
+    runTenantMigration,
+    confirmTenantMigration,
+    cancelTenantMigration,
+    pendingMigrationTenant,
+    migrationLoadingId,
+    passwordLoadingId,
+  } = useSuperadminTenant();
 
   if (!tenant) {
     return (
@@ -78,6 +172,16 @@ export const SuperadminTenantView = () => {
   }
 
   const database = tenant.database || {};
+  const migrationStatus = tenant.migrationStatus;
+  const isDatabaseBusy = ["creating", "verifying", "migrating", "seeding"].includes(
+    database.status,
+  );
+  const isRunMigrationDisabled =
+    migrationLoadingId === tenant.id ||
+    isDatabaseBusy ||
+    migrationStatus?.state === "up_to_date" ||
+    migrationStatus?.state === "drift" ||
+    migrationStatus?.state === "unknown";
   const currentSubscription = tenant.currentSubscription;
   const subscriptions = tenant.subscriptions || [];
   const domains = tenant.domains || [];
@@ -85,6 +189,12 @@ export const SuperadminTenantView = () => {
 
   return (
     <section className="space-y-6">
+      <SuperadminTenantMigrationDialog
+        tenant={pendingMigrationTenant}
+        onCancel={cancelTenantMigration}
+        onConfirm={confirmTenantMigration}
+      />
+
       <div className="flex flex-col gap-4 rounded-[10px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.4)] backdrop-blur md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
@@ -97,6 +207,7 @@ export const SuperadminTenantView = () => {
             <StatusBadge value={tenant.status} />
             <StatusBadge value={tenant.provisioningStep} />
             <StatusBadge value={database.dbType} />
+            <MigrationStatusBadge status={migrationStatus} />
           </div>
         </div>
 
@@ -165,8 +276,21 @@ export const SuperadminTenantView = () => {
       </div>
 
       <Card className="border-border/70 bg-white/70">
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <CardTitle>Database</CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => runTenantMigration(tenant.id)}
+            disabled={isRunMigrationDisabled}
+          >
+            <DatabaseZap
+              className={`size-4 ${
+                migrationLoadingId === tenant.id ? "animate-pulse" : ""
+              }`}
+            />
+            Run Migration
+          </Button>
         </CardHeader>
         <CardContent className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
@@ -191,7 +315,12 @@ export const SuperadminTenantView = () => {
             <DetailItem label="User" value={database.dbUser} />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <DetailItem label="Password" value={database.dbPassword} />
+            <SecretDetailItem
+              label="Password"
+              value={database.dbPassword}
+              isLoading={passwordLoadingId === tenant.id}
+              onReveal={() => revealTenantDatabasePassword(tenant.id)}
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
             <DetailItem label="Verified" value={formatDate(database.verifiedAt)} />
@@ -207,6 +336,18 @@ export const SuperadminTenantView = () => {
           </div>
           <div className="col-span-12 md:col-span-3">
             <DetailItem label="Failure" value={database.failureReason} />
+          </div>
+          <div className="col-span-12 md:col-span-3">
+            <DetailItem
+              label="Pending migrations"
+              value={migrationStatus?.pendingCount}
+            />
+          </div>
+          <div className="col-span-12 md:col-span-3">
+            <DetailItem
+              label="Missing applied files"
+              value={migrationStatus?.appliedButMissingCount}
+            />
           </div>
         </CardContent>
       </Card>

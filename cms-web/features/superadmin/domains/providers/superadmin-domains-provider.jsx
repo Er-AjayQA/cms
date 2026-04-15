@@ -92,10 +92,11 @@ export const SuperadminDomainProvider = ({ children }) => {
     setIsListLoading(true);
     try {
       const [tenantsRes, domainsRes] = await Promise.all([
-        getSuperadminTenants(search),
+        getSuperadminTenants({ search, limit: 100 }),
         getSuperadminDomains(),
       ]);
-      const tenants = tenantsRes?.data?.data || [];
+      const tenantsData = tenantsRes?.data?.data;
+      const tenants = tenantsData?.records || tenantsData || [];
       const domains = domainsRes?.data?.data || [];
       const tenantRows = tenants.map((tenant) => {
         const tenantDomains = domains.filter(

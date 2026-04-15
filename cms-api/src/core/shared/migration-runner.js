@@ -23,6 +23,50 @@ function getMigrationFiles(migrationsDir) {
     .sort();
 }
 
+function isMissingMetaTableError(error) {
+  return (
+    error?.original?.code === "ER_NO_SUCH_TABLE" ||
+    error?.parent?.code === "ER_NO_SUCH_TABLE" ||
+    error?.original?.errno === 1146 ||
+    error?.parent?.errno === 1146
+  );
+}
+
+async function getMigrationStatus({
+  sequelize,
+  migrationsDir,
+  metaTableName = "SequelizeMeta",
+}) {
+  const migrationFiles = getMigrationFiles(migrationsDir);
+  const migrationFileSet = new Set(migrationFiles);
+  let applied = new Set();
+
+  try {
+    applied = await getAppliedMigrations(sequelize, metaTableName);
+  } catch (error) {
+    if (!isMissingMetaTableError(error)) {
+      throw error;
+    }
+  }
+
+  const pending = migrationFiles.filter((file) => !applied.has(file));
+  const appliedMigrations = Array.from(applied).sort();
+  const appliedButMissing = appliedMigrations.filter(
+    (file) => !migrationFileSet.has(file),
+  );
+
+  return {
+    totalCount: migrationFiles.length,
+    appliedCount: appliedMigrations.length,
+    pendingCount: pending.length,
+    pending,
+    appliedButMissingCount: appliedButMissing.length,
+    appliedButMissing,
+    hasDrift: appliedButMissing.length > 0,
+    needsMigration: pending.length > 0,
+  };
+}
+
 async function runMigrations({
   sequelize,
   migrationsDir,
@@ -55,4 +99,4 @@ async function runMigrations({
   return executed;
 }
 
-module.exports = { runMigrations };
+module.exports = { getMigrationStatus, runMigrations };
